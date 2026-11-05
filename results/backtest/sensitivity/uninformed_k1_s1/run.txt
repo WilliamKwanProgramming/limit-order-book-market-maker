@@ -1,4 +1,4 @@
-command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1 --out results/backtest/sensitivity/uninformed_k1_s1
+command: build-backtest/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1 --out results/backtest/sensitivity/uninformed_k1_s1
 seed: 202
 episodes: 1000
 strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
@@ -7,6 +7,6 @@ as_k: 1.0930232451328947
 sigma_scale: 1
 k_scale: 1
 params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
-wall_seconds: 43.8
-loadavg_start: 2.15
-loadavg_end: 2.48
+wall_seconds: 33.3
+loadavg_start: 2.05
+loadavg_end: 2.11
