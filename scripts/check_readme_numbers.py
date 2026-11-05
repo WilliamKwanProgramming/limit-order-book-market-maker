@@ -96,7 +96,9 @@ PROSE: list[tuple[str, str, str, str]] = [
     (BT, "| uninformed | 1 | spread first: SymTV vs Symmetric (spread term, without skew) | -5.3 "
          "[-7.4, -3.2] | 0.837 [0.807, 0.867] |", "README.md", "without skew it lowers the ratio to 0.837"),
     (BT, "| uninformed | 1 | then A&S vs SkewConst (spread term, with skew) | +1.8 [+1.4, +2.3] | "
-         "1.004 [0.971, 1.035] |", "README.md", "with skew it changes nothing measurable (1.004 [0.971, 1.035])"),
+         "1.004 [0.971, 1.035] |", "README.md",
+     "with skew it leaves the ratio unchanged (1.004 [0.971, 1.035]) and raises mean PnL "
+     "(+1.8 [+1.4, +2.3] USD)"),
     (BT, T7B_C1, "README.md", "(0.88 for the skew when the spread term is added first, 1.00 when "
      "the skew is added first)"),
     # backtest/README.md reading: skew shares (both orders and their average) and the interaction.
