@@ -137,7 +137,8 @@ class SymmetricMatched final : public Strategy {
 // spread(t) = gamma sigma^2 (T - t) + (2/gamma) ln(1 + gamma/k) at the current time (capped at T,
 // as for A&S), no inventory term (lob::paper::QuotingRule, Strategy::SymmetricTimeMatched).
 // It differs from AvellanedaStoikov only by the skew and from SymmetricMatched only by the time
-// variation of the spread, so comparing the three separates the two effects.
+// variation of the spread, so comparing the three gives one order of the skew/spread
+// decomposition (spread first); SkewConstSpread below gives the other.
 class SymmetricTimeVarying final : public Strategy {
  public:
   explicit SymmetricTimeVarying(const AsParams& a);
@@ -148,6 +149,24 @@ class SymmetricTimeVarying final : public Strategy {
  private:
   AsParams a_;
   paper::QuotingRule rule_;
+};
+
+// The A&S inventory skew with SymmetricMatched's constant spread: r -/+ s_bar/2 with
+// r = s - q gamma sigma^2 (T - t) (t capped at T, as for A&S) and s_bar the A&S average spread
+// over the quoting times (lob::paper::reservation_price, paper::average_optimal_spread).
+// It differs from SymmetricMatched only by the skew and from AvellanedaStoikov only by the time
+// variation of the spread: the reverse order of the decomposition that SymmetricTimeVarying gives.
+class SkewConstSpread final : public Strategy {
+ public:
+  explicit SkewConstSpread(const AsParams& a);
+  QuoteTarget quote(const StrategyView& v) override;
+  // Unrounded quotes before the common rules.
+  paper::Quotes raw(double t, double s, Qty q) const;
+
+ private:
+  AsParams a_;
+  paper::ModelParams m_;
+  double half_spread_;  // s_bar / 2
 };
 
 // Joins the others' best bid and best ask (no inventory term). A side whose others' book is empty

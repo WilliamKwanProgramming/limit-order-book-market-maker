@@ -1,7 +1,7 @@
 // backtest_run: one market configuration, several strategies on the same episode seeds.
-// Writes run.txt, summary.csv, diagnostics.csv, comparison.csv and, with --calibrate 1,
-// calibration.csv and reach.csv. Run with --help for the flags; outputs are described in
-// backtest/README.md.
+// Writes run.txt, summary.csv, diagnostics.csv, comparison.csv, factorial.csv (when the list has
+// as, skewc, symtv and sym at one gamma) and, with --calibrate 1, calibration.csv and reach.csv.
+// Run with --help for the flags; outputs are described in backtest/README.md.
 #include <chrono>
 #include <cstdio>
 
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   }
   for (const StrategySpec& s : specs) {
     if (uses_as_inputs(s.kind) && !o.calib_given) {
-      std::fprintf(stderr, "as/sym/symtv strategies need --as-sigma and --as-k\n");
+      std::fprintf(stderr, "as/sym/symtv/skewc strategies need --as-sigma and --as-k\n");
       return 2;
     }
   }
@@ -58,6 +58,14 @@ int main(int argc, char** argv) {
       std::fprintf(f, "a,b,replicates,statistic,estimate,ci_lo,ci_hi,replicates_kept\n");
       cli::write_comparisons(f, "", specs, res, o.sim.horizon, o.bootstrap, o.seed, 0);
       std::fclose(f);
+    }
+    if (cli::has_factorial(specs)) {
+      if (std::FILE* f = cli::open_out(o.out_dir, "factorial.csv")) {
+        std::fprintf(f, "as,skewc,symtv,sym,replicates,statistic,estimate,ci_lo,ci_hi,"
+                        "replicates_kept\n");
+        cli::write_factorial(f, "", specs, res, o.bootstrap, o.seed, 0);
+        std::fclose(f);
+      }
     }
   }
   if (o.calibrate) {

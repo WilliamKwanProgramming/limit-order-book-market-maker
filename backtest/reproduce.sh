@@ -12,6 +12,14 @@ out="results/backtest"
 for b in backtest_run stress_test; do
   [[ -x "$bin/$b" ]] || { echo "missing $bin/$b: build it first (see backtest/README.md)" >&2; exit 1; }
 done
+# Recorded before anything is written (this script's own outputs would make the tree dirty).
+if ! status="$(git status --porcelain 2>/dev/null)"; then
+  tree="unknown (not a git checkout)"
+elif [[ -n "$status" ]]; then
+  tree="has uncommitted changes relative to that commit"
+else
+  tree="clean"
+fi
 mkdir -p "$out"
 load_start="$(cut -d' ' -f1 /proc/loadavg)"
 
@@ -36,20 +44,24 @@ k="$(awk -F, '$1=="k"{print $2}' "$out/calibration/calibration.csv")"
 # 2. Gamma grid: gamma = c / (sigma^2 T / 2), i.e. one lot of inventory moves the reservation
 #    price by c ticks at mid-horizon, c = 0.01, 0.03, 0.1, 0.3, 1 (half-decade grid).
 #    The stress test uses the middle value, c = 0.1. The symtv arms (A&S's time-varying spread, no
-#    skew) are appended after the original list, so the original arms' output does not change.
+#    skew) are appended after the original list, and the skewc arms (A&S's skew, Symmetric's
+#    constant spread; added after an independent review) after those, so the output of the arms
+#    already there does not change.
 read -r grid gmid ghi < <(python3 -c "
 s, T = $sigma, 600.0
 g = [c / (s * s * T / 2) for c in (0.01, 0.03, 0.1, 0.3, 1.0)]
 print(','.join(f'as:{x:.6g},sym:{x:.6g}' for x in g) + ','
-      + ','.join(f'symtv:{x:.6g}' for x in g), f'{g[2]:.6g}', f'{g[4]:.6g}')")
+      + ','.join(f'symtv:{x:.6g}' for x in g) + ','
+      + ','.join(f'skewc:{x:.6g}' for x in g), f'{g[2]:.6g}', f'{g[4]:.6g}')")
 
 # 3. Uninformed baseline: gamma sweep against the symmetric benchmark and the naive quoter, plus the
-#    symtv arm at each gamma (decomposition of A&S against Symmetric into skew and spread term). Seed 202.
+#    symtv and skewc arms at each gamma (2 x 2 decomposition of A&S against Symmetric into skew and
+#    spread term, both orders). Seed 202.
 "$bin/backtest_run" --strategies "none,naive,$grid" --episodes $N --seed 202 --bootstrap $B \
   --as-sigma "$sigma" --as-k "$k" --out "$out/baseline"
 
 # 4. Stress grid: informed Hawkes flow, news rate x branching ratio (plus no informed flow). Seed 303.
-"$bin/stress_test" --strategies "none,naive,as:$gmid,sym:$gmid,symtv:$gmid" \
+"$bin/stress_test" --strategies "none,naive,as:$gmid,sym:$gmid,symtv:$gmid,skewc:$gmid" \
   --nu-grid 0,0.01,0.03,0.1 --nbr-grid 0.5,0.75,0.9 --episodes $N --seed 303 --bootstrap $B \
   --as-sigma "$sigma" --as-k "$k" --out "$out/stress"
 
@@ -63,7 +75,8 @@ print(','.join(f'as:{x:.6g},sym:{x:.6g}' for x in g) + ','
   --episodes $N --seed 303 --bootstrap 10000 --as-sigma "$sigma" --as-k "$k" \
   --out "$out/mc_check/stress_0.1_0.9"
 
-# 6. Sensitivity to the estimated k and sigma: the as, symtv and sym arms get k x 0.5, k x 2,
+# 6. Sensitivity to the estimated k and sigma (not extended with skewc arms): the as, symtv and sym
+#    arms get k x 0.5, k x 2,
 #    sigma x 0.8 or sigma x 1.25 (one at a time; gamma unchanged), and the unperturbed values, on
 #    the first NS episodes of the baseline (seed 202; c = 0.1 and c = 1) and of the stress cell
 #    (0.1, 0.9) (seed 303; c = 0.1), so every setting sees the same episodes.
@@ -83,11 +96,10 @@ done
 {
   echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "commit: $(git rev-parse HEAD 2>/dev/null || echo unknown)"
-  if [[ -n "$(git status --porcelain -- backtest 2>/dev/null)" ]]; then
-    echo "working tree: backtest/ has uncommitted changes relative to that commit"
-  fi
+  echo "working tree before the run: $tree"
   echo "compiler: $(grep -m1 CMAKE_CXX_COMPILER: "$build/CMakeCache.txt" | cut -d= -f2)"
   echo "build type: $(grep -m1 CMAKE_BUILD_TYPE: "$build/CMakeCache.txt" | cut -d= -f2)"
+  echo "python: $(python3 --version 2>&1); numpy $(python3 -c 'import numpy; print(numpy.__version__)'), pandas $(python3 -c 'import pandas; print(pandas.__version__)'), matplotlib $(python3 -c 'import matplotlib; print(matplotlib.__version__)')"
   echo "machine: $(nproc --all) cores, $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')"
   echo "load average (1 min) at start: $load_start, at end: $(cut -d' ' -f1 /proc/loadavg)"
   echo "episodes per strategy: $N (calibration 1000, sensitivity $NS); bootstrap replicates: $B"

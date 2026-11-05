@@ -52,6 +52,7 @@ const char* kind_name(StrategySpec::Kind k) {
     case StrategySpec::Kind::Naive: return "naive";
     case StrategySpec::Kind::Fixed: return "fixed";
     case StrategySpec::Kind::SymTV: return "symtv";
+    case StrategySpec::Kind::SkewC: return "skewc";
   }
   return "?";
 }
@@ -71,10 +72,11 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
       s.kind = StrategySpec::Kind::None;
     } else if (head == "naive" && arg.empty()) {
       s.kind = StrategySpec::Kind::Naive;
-    } else if (head == "as" || head == "sym" || head == "symtv") {
-      s.kind = head == "as"    ? StrategySpec::Kind::AS
-               : head == "sym" ? StrategySpec::Kind::Sym
-                               : StrategySpec::Kind::SymTV;
+    } else if (head == "as" || head == "sym" || head == "symtv" || head == "skewc") {
+      s.kind = head == "as"      ? StrategySpec::Kind::AS
+               : head == "sym"   ? StrategySpec::Kind::Sym
+               : head == "symtv" ? StrategySpec::Kind::SymTV
+                                 : StrategySpec::Kind::SkewC;
       ok = to_double(arg, s.param) && s.param > 0.0;
     } else if (head == "fixed") {
       s.kind = StrategySpec::Kind::Fixed;
@@ -84,7 +86,7 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
     }
     if (!ok) {
       err = "bad strategy '" + part + "' (none, naive, as:<gamma>, sym:<gamma>, symtv:<gamma>, "
-            "fixed:<ticks>)";
+            "skewc:<gamma>, fixed:<ticks>)";
       return false;
     }
     out.push_back(s);
@@ -94,7 +96,7 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
 
 bool uses_as_inputs(StrategySpec::Kind k) noexcept {
   return k == StrategySpec::Kind::AS || k == StrategySpec::Kind::Sym ||
-         k == StrategySpec::Kind::SymTV;
+         k == StrategySpec::Kind::SymTV || k == StrategySpec::Kind::SkewC;
 }
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
@@ -112,6 +114,7 @@ std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& 
     case StrategySpec::Kind::Naive: return std::make_unique<NaiveTouch>();
     case StrategySpec::Kind::Fixed: return std::make_unique<FixedOffset>(s.param);
     case StrategySpec::Kind::SymTV: return std::make_unique<SymmetricTimeVarying>(a);
+    case StrategySpec::Kind::SkewC: return std::make_unique<SkewConstSpread>(a);
   }
   return std::make_unique<NeverQuote>();
 }
@@ -324,6 +327,62 @@ void stats_of(const std::vector<EpisodeResult>& a, const std::vector<EpisodeResu
   out[7] = (x.lots > 0 && y.lots > 0) ? x.mk10 / x.lots - y.mk10 / y.lots : nan;
 }
 
+// Percentile intervals (type-7 quantiles) of the finite replicates of each statistic.
+template <std::size_t N>
+std::vector<NamedInterval> percentile_intervals(const char* const (&names)[N], const double* est,
+                                                std::vector<std::vector<double>>& reps,
+                                                double level) {
+  std::vector<NamedInterval> out;
+  for (std::size_t k = 0; k < N; ++k) {
+    NamedInterval ni;
+    ni.name = names[k];
+    ni.iv.estimate = est[k];
+    auto& r = reps[k];
+    ni.kept = static_cast<int>(r.size());
+    std::sort(r.begin(), r.end());
+    if (r.empty()) {
+      ni.iv.lo = ni.iv.hi = std::nan("");
+    } else {
+      ni.iv.lo = paper::quantile_sorted(r, (1.0 - level) / 2.0);
+      ni.iv.hi = paper::quantile_sorted(r, (1.0 + level) / 2.0);
+    }
+    out.push_back(ni);
+  }
+  return out;
+}
+
+constexpr int kInteractionStats = 3;
+const char* const kInteractionNames[kInteractionStats] = {
+    "sd_pnl_interaction", "sd_final_inv_interaction", "mean_pnl_interaction"};
+
+// The statistics of interaction_bootstrap on the episodes idx (the same for the four arms).
+void interaction_of(const std::vector<EpisodeResult>& as, const std::vector<EpisodeResult>& skewc,
+                    const std::vector<EpisodeResult>& symtv,
+                    const std::vector<EpisodeResult>& sym, const std::vector<std::size_t>& idx,
+                    double* out) {
+  const std::vector<EpisodeResult>* arms[4] = {&as, &skewc, &symtv, &sym};
+  double m[4], sp[4], sq[4];
+  std::vector<double> pnl, inv;
+  pnl.reserve(idx.size());
+  inv.reserve(idx.size());
+  for (int j = 0; j < 4; ++j) {
+    pnl.clear();
+    inv.clear();
+    for (std::size_t i : idx) {
+      pnl.push_back((*arms[j])[i].pnl);
+      inv.push_back(static_cast<double>((*arms[j])[i].final_inventory));
+    }
+    m[j] = mean_of(pnl);
+    sp[j] = sd_of(pnl);
+    sq[j] = sd_of(inv);
+  }
+  const double nan = std::nan("");
+  // Arms: 0 A&S, 1 SkewC, 2 SymTV, 3 Symmetric.
+  out[0] = (sp[1] > 0 && sp[2] > 0 && sp[3] > 0) ? (sp[0] / sp[1]) / (sp[2] / sp[3]) : nan;
+  out[1] = (sq[1] > 0 && sq[2] > 0 && sq[3] > 0) ? (sq[0] / sq[1]) / (sq[2] / sq[3]) : nan;
+  out[2] = (m[0] - m[1]) - (m[2] - m[3]);
+}
+
 }  // namespace
 
 std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
@@ -343,23 +402,29 @@ std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
       if (std::isfinite(v[k])) reps[static_cast<std::size_t>(k)].push_back(v[k]);
     }
   }
-  std::vector<NamedInterval> out;
-  for (int k = 0; k < kStats; ++k) {
-    NamedInterval ni;
-    ni.name = kStatNames[k];
-    ni.iv.estimate = est[k];
-    auto& r = reps[static_cast<std::size_t>(k)];
-    ni.kept = static_cast<int>(r.size());
-    std::sort(r.begin(), r.end());
-    if (r.empty()) {
-      ni.iv.lo = ni.iv.hi = std::nan("");
-    } else {
-      ni.iv.lo = paper::quantile_sorted(r, (1.0 - level) / 2.0);
-      ni.iv.hi = paper::quantile_sorted(r, (1.0 + level) / 2.0);
+  return percentile_intervals(kStatNames, est, reps, level);
+}
+
+std::vector<NamedInterval> interaction_bootstrap(const std::vector<EpisodeResult>& as,
+                                                 const std::vector<EpisodeResult>& skewc,
+                                                 const std::vector<EpisodeResult>& symtv,
+                                                 const std::vector<EpisodeResult>& sym,
+                                                 int replicates, Rng& rng, double level) {
+  const std::size_t n = as.size();
+  std::vector<std::size_t> idx(n);
+  for (std::size_t i = 0; i < n; ++i) idx[i] = i;
+  double est[kInteractionStats];
+  interaction_of(as, skewc, symtv, sym, idx, est);
+  std::vector<std::vector<double>> reps(kInteractionStats);
+  double v[kInteractionStats];
+  for (int r = 0; r < replicates; ++r) {
+    for (std::size_t i = 0; i < n; ++i) idx[i] = static_cast<std::size_t>(rng.uniform_int(n));
+    interaction_of(as, skewc, symtv, sym, idx, v);
+    for (int k = 0; k < kInteractionStats; ++k) {
+      if (std::isfinite(v[k])) reps[static_cast<std::size_t>(k)].push_back(v[k]);
     }
-    out.push_back(ni);
   }
-  return out;
+  return percentile_intervals(kInteractionNames, est, reps, level);
 }
 
 void write_summary_header(std::FILE* f, const char* prefix) {
@@ -428,6 +493,36 @@ std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
     if (specs[i].kind != StrategySpec::Kind::SymTV) continue;
     const long sym = find(StrategySpec::Kind::Sym, specs[i].param);
     if (sym >= 0) out.emplace_back(i, static_cast<std::size_t>(sym));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::AS) continue;
+    const long sc = find(StrategySpec::Kind::SkewC, specs[i].param);
+    if (sc >= 0) out.emplace_back(i, static_cast<std::size_t>(sc));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::SkewC) continue;
+    const long sym = find(StrategySpec::Kind::Sym, specs[i].param);
+    if (sym >= 0) out.emplace_back(i, static_cast<std::size_t>(sym));
+  }
+  return out;
+}
+
+std::vector<FactorialArms> factorial_sets(const std::vector<StrategySpec>& specs) {
+  auto find = [&](StrategySpec::Kind k, double param) -> long {
+    for (std::size_t i = 0; i < specs.size(); ++i) {
+      if (specs[i].kind == k && specs[i].param == param) return static_cast<long>(i);
+    }
+    return -1;
+  };
+  std::vector<FactorialArms> out;
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::AS) continue;
+    const long sc = find(StrategySpec::Kind::SkewC, specs[i].param);
+    const long tv = find(StrategySpec::Kind::SymTV, specs[i].param);
+    const long sy = find(StrategySpec::Kind::Sym, specs[i].param);
+    if (sc < 0 || tv < 0 || sy < 0) continue;
+    out.push_back({i, static_cast<std::size_t>(sc), static_cast<std::size_t>(tv),
+                   static_cast<std::size_t>(sy)});
   }
   return out;
 }

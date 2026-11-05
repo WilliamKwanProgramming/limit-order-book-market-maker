@@ -26,8 +26,8 @@ struct Options {
   int bootstrap = 1000;
   AsCalibration calib{1.0, 1.0};
   bool calib_given = false;
-  // Sensitivity runs: the k and sigma given to the as, sym and symtv arms are calib.k * k_scale and
-  // calib.sigma * sigma_scale; gamma stays as written in the strategy list.
+  // Sensitivity runs: the k and sigma given to the as, sym, symtv and skewc arms are
+  // calib.k * k_scale and calib.sigma * sigma_scale; gamma stays as written in the strategy list.
   double k_scale = 1.0;
   double sigma_scale = 1.0;
   bool calibrate = false;
@@ -71,16 +71,18 @@ inline void usage(std::FILE* f, const char* prog, bool grid) {
   std::fprintf(f, "usage: %s [options]\n", prog);
   std::fprintf(f,
                "  --strategies LIST  none, naive, as:<gamma>, sym:<gamma>, symtv:<gamma>,\n"
-               "                     fixed:<ticks>\n"
+               "                     skewc:<gamma>, fixed:<ticks>\n"
                "  --episodes N       episodes per strategy%s (default 100)\n"
                "  --seed S           master seed (default 1)\n"
                "  --out DIR          output directory\n"
                "  --bootstrap B      paired bootstrap replicates, 0 to skip (default 1000)\n"
-               "  --as-sigma X       A&S sigma estimate, ticks/sqrt(s) (required for as/sym/symtv)\n"
-               "  --as-k X           A&S k estimate, 1/tick (required for as/sym/symtv)\n"
-               "  --k-scale X        give the as/sym/symtv arms k = X * (--as-k) (default 1;\n"
-               "                     sensitivity runs; gamma is not changed)\n"
-               "  --sigma-scale X    give the as/sym/symtv arms sigma = X * (--as-sigma) (default 1)\n"
+               "  --as-sigma X       A&S sigma estimate, ticks/sqrt(s) (required for\n"
+               "                     as/sym/symtv/skewc)\n"
+               "  --as-k X           A&S k estimate, 1/tick (required for as/sym/symtv/skewc)\n"
+               "  --k-scale X        give the as/sym/symtv/skewc arms k = X * (--as-k)\n"
+               "                     (default 1; sensitivity runs; gamma is not changed)\n"
+               "  --sigma-scale X    give the as/sym/symtv/skewc arms sigma = X * (--as-sigma)\n"
+               "                     (default 1)\n"
                "  --list-params FILE write the parameter table (CSV) and exit\n",
                grid ? " and grid cell" : "");
   if (!grid) {
@@ -246,6 +248,31 @@ inline void write_comparisons(std::FILE* f, const std::string& prefix,
       std::fprintf(f, "%s%s,%s,%d,%s,%.10g,%.10g,%.10g,%d\n", prefix.c_str(), a.label.c_str(),
                    b.label.c_str(), replicates, ni.name.c_str(), ni.iv.estimate, ni.iv.lo,
                    ni.iv.hi, ni.kept);
+    }
+  }
+}
+
+// True when the list has at least one complete 2 x 2 set (as, skewc, symtv, sym at one gamma).
+inline bool has_factorial(const std::vector<StrategySpec>& specs) {
+  return !factorial_sets(specs).empty();
+}
+
+// The interaction statistics (interaction_bootstrap) of every complete 2 x 2 set.
+inline void write_factorial(std::FILE* f, const std::string& prefix,
+                            const std::vector<StrategySpec>& specs, const CellResults& res,
+                            int replicates, std::uint64_t seed, std::uint64_t cell) {
+  const auto sets = factorial_sets(specs);
+  for (std::size_t k = 0; k < sets.size(); ++k) {
+    // Streams after those of the pairs (write_comparisons), so neither depends on the other.
+    Rng rng = Rng::for_stream(seed, (std::uint64_t{1} << 62) + (std::uint64_t{1} << 40) +
+                                        cell * 1000 + k);
+    const FactorialArms& s = sets[k];
+    for (const NamedInterval& ni : interaction_bootstrap(res[s.as], res[s.skewc], res[s.symtv],
+                                                         res[s.sym], replicates, rng)) {
+      std::fprintf(f, "%s%s,%s,%s,%s,%d,%s,%.10g,%.10g,%.10g,%d\n", prefix.c_str(),
+                   specs[s.as].label.c_str(), specs[s.skewc].label.c_str(),
+                   specs[s.symtv].label.c_str(), specs[s.sym].label.c_str(), replicates,
+                   ni.name.c_str(), ni.iv.estimate, ni.iv.lo, ni.iv.hi, ni.kept);
     }
   }
 }

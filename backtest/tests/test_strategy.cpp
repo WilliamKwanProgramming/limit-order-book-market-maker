@@ -264,6 +264,149 @@ LOB_TEST(symtv_ignores_inventory_and_rounds_like_the_others) {
   LOB_CHECK(!q.bid_on && !q.ask_on);
 }
 
+LOB_TEST(skewc_equals_symmetric_at_zero_inventory) {
+  for (double gamma : {0.0003, 0.004, 0.05}) {
+    const AsParams a = as_params(gamma);
+    SymmetricMatched sym(a);
+    SkewConstSpread sc(a);
+    Rng rng(19);
+    for (int i = 0; i < 5000; ++i) {
+      const Price bb =
+          10000 + static_cast<Price>(rng.uniform_int(std::int64_t{-3}, std::int64_t{3}));
+      const Price ba = bb + static_cast<Price>(rng.uniform_int(std::int64_t{1}, std::int64_t{4}));
+      StrategyView v = view(bb, ba, 0);
+      v.t = i == 0 ? 0.0 : rng.uniform(0.0, 610.0);
+      const QuoteTarget x = sym.quote(v);
+      const QuoteTarget y = sc.quote(v);
+      LOB_CHECK(x.bid_on == y.bid_on && x.ask_on == y.ask_on);
+      LOB_CHECK(x.bid == y.bid && x.ask == y.ask && x.lots == y.lots);
+      // Raw quotes bit for bit: the mid -/+ half of the symmetric spread.
+      const paper::Quotes r = sc.raw(std::min(v.t, 600.0), v.mid, 0);
+      LOB_CHECK(r.bid == v.mid - 0.5 * sym.spread() && r.ask == v.mid + 0.5 * sym.spread());
+    }
+  }
+}
+
+LOB_TEST(skewc_is_centred_on_the_reservation_price_with_the_symmetric_spread) {
+  for (double gamma : {0.0003, 0.004, 0.05}) {
+    const AsParams a = as_params(gamma);
+    const SkewConstSpread sc(a);
+    const SymmetricMatched sym(a);
+    const AvellanedaStoikov as(a);
+    const paper::ModelParams mp = to_paper_params(a);
+    for (double t : {0.0, 1.0, 299.95, 599.9, 600.0}) {
+      for (Qty q : {Qty{-7}, Qty{-1}, Qty{0}, Qty{3}, Qty{10}}) {
+        const double s = 10000.5;
+        const paper::Quotes r = sc.raw(t, s, q);
+        const double res = paper::reservation_price(s, static_cast<double>(q), t, gamma, mp);
+        LOB_CHECK_NEAR(0.5 * (r.bid + r.ask), res, 1e-9);
+        // Written out: r = s - q gamma sigma^2 (T - t).
+        const double r2 = s - static_cast<double>(q) * gamma * 0.49 * (600.0 - t);
+        LOB_CHECK_NEAR(0.5 * (r.bid + r.ask), r2, 1e-7);
+        // Same centre as A&S, constant spread equal to the symmetric quoter's at every t and q.
+        const paper::Quotes ra = as.raw(t, s, q);
+        LOB_CHECK_NEAR(0.5 * (r.bid + r.ask), 0.5 * (ra.bid + ra.ask), 1e-9);
+        LOB_CHECK_NEAR(r.ask - r.bid, sym.spread(), 1e-9);
+        LOB_CHECK_NEAR(r.ask - r.bid, paper::average_optimal_spread(gamma, mp), 1e-9);
+      }
+    }
+    // Skew sign: long inventory moves both quotes down, short moves them up.
+    const paper::Quotes q0 = sc.raw(50.0, 10000.0, 0);
+    const paper::Quotes qp = sc.raw(50.0, 10000.0, 4);
+    const paper::Quotes qn = sc.raw(50.0, 10000.0, -4);
+    LOB_CHECK(qp.bid < q0.bid && qp.ask < q0.ask);
+    LOB_CHECK(qn.bid > q0.bid && qn.ask > q0.ask);
+  }
+}
+
+LOB_TEST(skewc_applies_the_common_rules_and_caps_t_at_T) {
+  for (double gamma : {0.003, 0.05}) {
+    SkewConstSpread st(as_params(gamma));
+    Rng rng(23);
+    for (int i = 0; i < 5000; ++i) {
+      const Price bb =
+          10000 + static_cast<Price>(rng.uniform_int(std::int64_t{-3}, std::int64_t{3}));
+      const Price ba = bb + static_cast<Price>(rng.uniform_int(std::int64_t{1}, std::int64_t{4}));
+      StrategyView v =
+          view(bb, ba, static_cast<Qty>(rng.uniform_int(std::int64_t{-10}, std::int64_t{10})));
+      v.t = rng.uniform(0.0, 610.0);  // includes times past T, where t is capped at T
+      const QuoteTarget q = st.quote(v);
+      const paper::Quotes r = st.raw(std::min(v.t, 600.0), v.mid, v.inventory);
+      const QuoteTarget e = apply_quote_rules(r.bid, r.ask, true, true, v);
+      LOB_CHECK(q.bid_on == e.bid_on && q.ask_on == e.ask_on);
+      LOB_CHECK(q.bid == e.bid && q.ask == e.ask);
+    }
+  }
+  SkewConstSpread st(as_params(0.003));
+  StrategyView v = view(9990, 10010, 10);  // at the limit: no bid
+  QuoteTarget q = st.quote(v);
+  LOB_CHECK(!q.bid_on && q.ask_on);
+  v.mid_defined = false;
+  q = st.quote(v);
+  LOB_CHECK(!q.bid_on && !q.ask_on);
+}
+
+LOB_TEST(skewc_differs_from_symtv_and_as_where_it_must) {
+  // gamma 0.05: gamma sigma^2 T = 14.7 ticks, so both the skew and the time variation of the
+  // spread cross several ticks. The book is wide enough that no quote is clipped.
+  const AsParams a = as_params(0.05);
+  SkewConstSpread sc(a);
+  SymmetricTimeVarying tv(a);
+  AvellanedaStoikov as(a);
+  SymmetricMatched sym(a);
+  StrategyView v = view(9950, 10050, 0, 10);
+  // Zero inventory at t = 0: SkewC quotes like Symmetric, A&S like SymTV, and the latter wider.
+  QuoteTarget x = sc.quote(v), y = tv.quote(v), z = as.quote(v), w = sym.quote(v);
+  LOB_CHECK(x.bid == w.bid && x.ask == w.ask);
+  LOB_CHECK(z.bid == y.bid && z.ask == y.ask);
+  LOB_CHECK(x.bid > z.bid && x.ask < z.ask);
+  // Long 1 lot at t = 0: SkewC moves both quotes down by A&S's skew (Symmetric and SymTV do not
+  // move), keeps Symmetric's spread and so stays narrower than A&S.
+  v.inventory = 1;
+  const QuoteTarget y0 = y;
+  x = sc.quote(v);
+  y = tv.quote(v);
+  z = as.quote(v);
+  w = sym.quote(v);
+  LOB_CHECK(y.bid == y0.bid && y.ask == y0.ask);
+  LOB_CHECK(x.bid < w.bid && x.ask < w.ask);
+  LOB_CHECK(x.bid != y.bid && x.ask != y.ask);
+  LOB_CHECK_NEAR(0.5 * static_cast<double>(x.bid + x.ask), 0.5 * static_cast<double>(z.bid + z.ask),
+                 1.0);
+  LOB_CHECK(x.ask - x.bid < z.ask - z.bid);
+  // At t = T the skew vanishes: SkewC quotes like Symmetric again, whatever the inventory.
+  v.t = 600.0;
+  x = sc.quote(v);
+  w = sym.quote(v);
+  LOB_CHECK(x.bid == w.bid && x.ask == w.ask);
+}
+
+LOB_TEST(skewc_and_symtv_equal_symmetric_when_rounding_hides_the_difference) {
+  // gamma 1e-6 with sigma 0.7, T 600: the skew is at most 10 x 1e-6 x 0.49 x 600 = 0.003 ticks and
+  // the time variation of the spread at most 0.0003 ticks, while the symmetric half-spread
+  // (about 1/k = 0.67 ticks) puts the raw quotes at least 0.16 ticks from a tick boundary for an
+  // integer or half-integer mid. After rounding all three strategies quote the same prices.
+  const AsParams a = as_params(1e-6);
+  SkewConstSpread sc(a);
+  SymmetricTimeVarying tv(a);
+  SymmetricMatched sym(a);
+  Rng rng(29);
+  int skewed_raw = 0;
+  for (int i = 0; i < 5000; ++i) {
+    const Price bb = 10000 + static_cast<Price>(rng.uniform_int(std::int64_t{-3}, std::int64_t{3}));
+    const Price ba = bb + static_cast<Price>(rng.uniform_int(std::int64_t{1}, std::int64_t{4}));
+    StrategyView v =
+        view(bb, ba, static_cast<Qty>(rng.uniform_int(std::int64_t{-10}, std::int64_t{10})));
+    v.t = rng.uniform(0.0, 600.0);
+    const QuoteTarget x = sc.quote(v), y = tv.quote(v), w = sym.quote(v);
+    LOB_CHECK(x.bid_on == w.bid_on && x.ask_on == w.ask_on && x.bid == w.bid && x.ask == w.ask);
+    LOB_CHECK(y.bid_on == w.bid_on && y.ask_on == w.ask_on && y.bid == w.bid && y.ask == w.ask);
+    if (v.inventory != 0 && sc.raw(v.t, v.mid, v.inventory).bid != v.mid - 0.5 * sym.spread())
+      ++skewed_raw;
+  }
+  LOB_CHECK(skewed_raw > 0);  // the raw quotes do carry the skew; only rounding removes it
+}
+
 LOB_TEST(naive_joins_the_others_touch) {
   NaiveTouch st;
   StrategyView v = view(9998, 10003);
