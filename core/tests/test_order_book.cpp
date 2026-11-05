@@ -1,5 +1,6 @@
 // Unit tests for lob::OrderBook: hand-checked scenarios for every function and edge case.
 #include <cstdio>
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
@@ -557,6 +558,29 @@ LOB_TEST(id_index_survives_growth_and_many_erases) {
     const bool present = book.find(i * 7919).has_value();
     LOB_CHECK_EQ(present, (i - 1) % 3 != 0);
   }
+}
+
+LOB_TEST(sizes_that_would_overflow_a_side_total_are_rejected) {
+  // Level and side totals are int64 sums; a size that would push the side total past INT64_MAX is
+  // rejected with InvalidQty and leaves the book unchanged (before the fix this was signed overflow).
+  OrderBook book;
+  std::vector<Fill> fills;
+  const lob::Qty big = std::numeric_limits<lob::Qty>::max();
+  LOB_CHECK(book.add_resting(1, kBid, 100, big - 5, 0) == Status::Ok);
+  LOB_CHECK(book.add_resting(2, kBid, 100, 6, 0) == Status::InvalidQty);
+  LOB_CHECK(book.add_resting(3, kBid, 99, 6, 0) == Status::InvalidQty);
+  LOB_CHECK(book.submit_limit(4, kBid, 98, 6, 0, fills).status == Status::InvalidQty);
+  LOB_CHECK(fills.empty());
+  LOB_CHECK(book.add_resting(5, kBid, 100, 5, 0) == Status::Ok);  // exactly reaches INT64_MAX
+  LOB_CHECK(book.total_qty(kBid) == big);
+  LOB_CHECK(book.best_bid()->qty == big);
+  // A replace that loses priority and would grow the total is rejected before the order is pulled.
+  LOB_CHECK(book.replace(5, 101, 6, 0, fills).status == Status::InvalidQty);
+  LOB_CHECK(book.find(5).has_value() && book.find(5)->price == 100 && book.find(5)->qty == 5);
+  LOB_CHECK(book.replace(5, 101, 5, 0, fills).status == Status::Ok);  // same size, new price
+  LOB_CHECK(book.total_qty(kBid) == big);
+  LOB_CHECK(book.add_resting(6, kAsk, 200, big, 0) == Status::Ok);  // the other side is separate
+  LOB_CHECK(invariants_ok(book));
 }
 
 LOB_TEST_MAIN()

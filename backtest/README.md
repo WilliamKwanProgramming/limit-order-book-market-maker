@@ -213,7 +213,7 @@ and `results/backtest/sensitivity/`), records
 commands, seeds, git commit and machine load in `results/backtest/MANIFEST.txt`, then calls
 `make_tables.py` (tables below and `results/backtest/tables.md`) and `plot.py` (figures).
 
-## Wave 3 analyses (written before they were run)
+## Further analyses (written before they were run)
 
 This section was committed before any of the runs below was made. It fixes every choice of the
 three analyses that answer three questions: how much of the A&S variance reduction comes from the
@@ -685,7 +685,7 @@ shows that bursts raise volatility, mostly at longer sampling intervals (trendin
 re-estimated per cell would quote differently (Table 9 shows that $\sigma \times 1.25$ and
 $k \times 0.5$ or $\times 2$ do not restore a variance reduction in the strongest cell, but an
 estimate made on that cell's own flow was not run); and no strategy here reacts to order flow (the
-optional flow-aware extension of the brief was not implemented).
+optional flow-aware extension of the original plan was not implemented).
 
 ## Tests
 
@@ -781,11 +781,11 @@ so common random numbers still hold.
   run. The decomposition uses one way of splitting (skew added to SymTV); the share is a point
   estimate.
 
-## Deviations from the brief
+## Deviations from the original plan
 
 - `Qty` in the engine is shares (the repository convention in `docs/design.md`); orders are whole
   lots of 100 shares, and all reported quantities are in lots.
-- The flow-aware A&S extension (optional in the brief) was not implemented.
+- The flow-aware A&S extension (optional in the original plan) was not implemented.
 - $\sigma$ is estimated at a 10 s sampling interval; the other scales are reported in Table 1.
 - The `MANIFEST.txt` of the committed results says "1 cores" because the script counted cores with
   `nproc`, which honours `OMP_NUM_THREADS=1` (set for the run); the VM has 2 cores. The script now

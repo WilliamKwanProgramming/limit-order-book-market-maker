@@ -1,6 +1,7 @@
 #include "lob/order_book.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <sstream>
 
 namespace lob {
@@ -45,6 +46,12 @@ Status OrderBook::validate_new(OrderId id, Price price, Qty qty) noexcept {
   if (price <= 0) return Status::InvalidPrice;
   if (qty <= 0) return Status::InvalidQty;
   return Status::Ok;
+}
+
+// True if resting `qty` more on `side` would push the side total (and so a level total) past the
+// largest Qty. Level totals never exceed their side's total, so this one check covers both.
+bool OrderBook::would_overflow(Side side, Qty qty) const noexcept {
+  return qty > std::numeric_limits<Qty>::max() - total_qty_[side_index(side)];
 }
 
 std::uint32_t OrderBook::allocate_node() {
@@ -172,6 +179,10 @@ SubmitResult OrderBook::submit_limit(OrderId id, Side side, Price price, Qty qty
     r.status = Status::DuplicateId;
     return r;
   }
+  if (would_overflow(side, qty)) {
+    r.status = Status::InvalidQty;
+    return r;
+  }
   r.filled = match(id, side, true, price, qty, ts, fills);
   r.resting = qty - r.filled;
   if (r.resting > 0) rest(id, side, price, r.resting, ts);
@@ -209,7 +220,12 @@ SubmitResult OrderBook::replace(OrderId id, Price new_price, Qty new_qty, Time t
     r.resting = new_qty;
     return r;
   }
-  // Loses priority: equivalent to cancel followed by a fresh limit order with the same id.
+  // Loses priority: equivalent to cancel followed by a fresh limit order with the same id. The size
+  // check is made before the order is pulled, so a rejected replace leaves the book unchanged.
+  if (new_qty - node.qty > std::numeric_limits<Qty>::max() - total_qty_[side_index(node.side)]) {
+    r.status = Status::InvalidQty;
+    return r;
+  }
   const Side side = node.side;
   remove_node(n);
   return submit_limit(id, side, new_price, new_qty, ts, fills);
@@ -244,6 +260,7 @@ Status OrderBook::add_resting(OrderId id, Side side, Price price, Qty qty, Time 
   const Status s = validate_new(id, price, qty);
   if (s != Status::Ok) return s;
   if (index_.find(id) != book_detail::IdIndex::kNotFound) return Status::DuplicateId;
+  if (would_overflow(side, qty)) return Status::InvalidQty;
   rest(id, side, price, qty, ts);
   return Status::Ok;
 }

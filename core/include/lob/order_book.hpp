@@ -55,6 +55,9 @@
 //   new order id already resting  -> DuplicateId     (also for market orders, so fills stay
 //                                                     unambiguous; ids are not otherwise
 //                                                     remembered after an order leaves the book)
+//   resting size would push the   -> InvalidQty      (submit_limit, add_resting, and replace
+//   side's total past INT64_MAX                       when it loses priority; submit_limit checks
+//                                                     its whole size before matching)
 //   id not resting                -> UnknownId       (cancel, reduce, replace, execute_resting)
 // Nothing is thrown except std::bad_alloc if growing the pool, index or level vectors runs out of
 // memory. Precondition: fewer than 2^32 - 1 orders rest at once (pool slots are 32-bit indices).
@@ -233,6 +236,7 @@ class OrderBook {
   }
 
   static Status validate_new(OrderId id, Price price, Qty qty) noexcept;
+  bool would_overflow(Side side, Qty qty) const noexcept;
   std::uint32_t allocate_node();
   void rest(OrderId id, Side side, Price price, Qty qty, Time ts);
   Qty match(OrderId aggressor, Side side, bool has_limit, Price limit, Qty qty, Time ts,

@@ -184,59 +184,59 @@ LOB_TEST(int_random_against_reference) {
 
 LOB_TEST(message_basic_and_robustness) {
   Message m;
-  LOB_CHECK(msg("34200.004241176,1,16113575,18,5853300,1", m).ok());
-  LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond + 4241176);
+  LOB_CHECK(msg("34200.001234567,1,1001,18,1002300,1", m).ok());
+  LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond + 1234567);
   LOB_CHECK_EQ(m.type, 1);
-  LOB_CHECK_EQ(m.id, 16113575);
+  LOB_CHECK_EQ(m.id, 1001);
   LOB_CHECK_EQ(m.size, 18);
-  LOB_CHECK_EQ(m.price, 5853300);
+  LOB_CHECK_EQ(m.price, 1002300);
   LOB_CHECK_EQ(m.direction, 1);
   LOB_CHECK(m.side() == Side::Bid);
   // Trailing comma, spaces, tabs.
-  LOB_CHECK(msg(" 34200.5 , 3 ,7, 100 ,5853300 , -1 ,", m).ok());
+  LOB_CHECK(msg(" 34200.5 , 3 ,7, 100 ,1002300 , -1 ,", m).ok());
   LOB_CHECK_EQ(m.type, 3);
   LOB_CHECK(m.side() == Side::Ask);
-  LOB_CHECK(msg("34200,4,7,100,5853300,-1,  ", m).ok());
+  LOB_CHECK(msg("34200,4,7,100,1002300,-1,  ", m).ok());
   LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond);
 }
 
 LOB_TEST(message_rejections) {
   Message m;
-  LOB_CHECK(msg("34200,1,7,100,5853300", m).code == ParseCode::WrongFieldCount);
-  LOB_CHECK(msg("34200,1,7,100,5853300,1,,", m).code == ParseCode::WrongFieldCount);
-  LOB_CHECK(msg("34200,1,7,100,5853300,1,5", m).code == ParseCode::WrongFieldCount);
+  LOB_CHECK(msg("34200,1,7,100,1002300", m).code == ParseCode::WrongFieldCount);
+  LOB_CHECK(msg("34200,1,7,100,1002300,1,,", m).code == ParseCode::WrongFieldCount);
+  LOB_CHECK(msg("34200,1,7,100,1002300,1,5", m).code == ParseCode::WrongFieldCount);
   LOB_CHECK(msg("", m).code == ParseCode::WrongFieldCount);
-  ParseError e = msg("34200,1,7,1.5,5853300,1", m);
+  ParseError e = msg("34200,1,7,1.5,1002300,1", m);
   LOB_CHECK(e.code == ParseCode::NotAnInteger);
   LOB_CHECK_EQ(e.field, 4);
   e = msg("34200,1,7,100,58533.00,1", m);
   LOB_CHECK(e.code == ParseCode::NotAnInteger);
   LOB_CHECK_EQ(e.field, 5);
-  LOB_CHECK(msg("34200.1234567890,1,7,100,5853300,1", m).code == ParseCode::TooManyFractionDigits);
-  LOB_CHECK(msg("-1,1,7,100,5853300,1", m).code == ParseCode::NegativeTime);
-  LOB_CHECK(msg("34200,8,7,100,5853300,1", m).code == ParseCode::UnknownType);
-  LOB_CHECK(msg("34200,0,7,100,5853300,1", m).code == ParseCode::UnknownType);
-  LOB_CHECK(msg("34200,1,7,,5853300,1", m).code == ParseCode::EmptyField);
+  LOB_CHECK(msg("34200.1234567890,1,7,100,1002300,1", m).code == ParseCode::TooManyFractionDigits);
+  LOB_CHECK(msg("-1,1,7,100,1002300,1", m).code == ParseCode::NegativeTime);
+  LOB_CHECK(msg("34200,8,7,100,1002300,1", m).code == ParseCode::UnknownType);
+  LOB_CHECK(msg("34200,0,7,100,1002300,1", m).code == ParseCode::UnknownType);
+  LOB_CHECK(msg("34200,1,7,,1002300,1", m).code == ParseCode::EmptyField);
   // Per-type rules for types 1-4.
   for (int type = 1; type <= 4; ++type) {
     const std::string t = std::to_string(type);
-    LOB_CHECK(msg("1," + t + ",0,100,5853300,1", m).code == ParseCode::InvalidId);
-    LOB_CHECK(msg("1," + t + ",7,0,5853300,1", m).code == ParseCode::InvalidSize);
-    LOB_CHECK(msg("1," + t + ",7,-5,5853300,1", m).code == ParseCode::InvalidSize);
+    LOB_CHECK(msg("1," + t + ",0,100,1002300,1", m).code == ParseCode::InvalidId);
+    LOB_CHECK(msg("1," + t + ",7,0,1002300,1", m).code == ParseCode::InvalidSize);
+    LOB_CHECK(msg("1," + t + ",7,-5,1002300,1", m).code == ParseCode::InvalidSize);
     LOB_CHECK(msg("1," + t + ",7,100,0,1", m).code == ParseCode::InvalidPrice);
     LOB_CHECK(msg("1," + t + ",7,100,-1,1", m).code == ParseCode::InvalidPrice);
-    LOB_CHECK(msg("1," + t + ",7,100,5853300,0", m).code == ParseCode::InvalidDirection);
-    LOB_CHECK(msg("1," + t + ",7,100,5853300,2", m).code == ParseCode::InvalidDirection);
+    LOB_CHECK(msg("1," + t + ",7,100,1002300,0", m).code == ParseCode::InvalidDirection);
+    LOB_CHECK(msg("1," + t + ",7,100,1002300,2", m).code == ParseCode::InvalidDirection);
   }
 }
 
 LOB_TEST(message_types_5_6_7_are_lenient) {
   Message m;
   // Hidden execution and cross trade: any id, price and direction; size >= 0.
-  LOB_CHECK(msg("34200,5,0,100,5853300,1", m).ok());
+  LOB_CHECK(msg("34200,5,0,100,1002300,1", m).ok());
   LOB_CHECK(msg("34200,5,0,0,-1,0", m).ok());
   LOB_CHECK(msg("34200,6,-1,0,0,7", m).ok());
-  LOB_CHECK(msg("34200,6,5,-1,5853300,1", m).code == ParseCode::InvalidSize);
+  LOB_CHECK(msg("34200,6,5,-1,1002300,1", m).code == ParseCode::InvalidSize);
   // Trading halt: unusual values everywhere.
   LOB_CHECK(msg("34200,7,0,0,-1,-1", m).ok());
   LOB_CHECK_EQ(m.price, -1);
@@ -346,37 +346,37 @@ LOB_TEST(message_random_round_trip) {
 
 LOB_TEST(book_row_levels_and_sentinels) {
   const std::string line =
-      "5853400,200,5853300,18,9999999999,0,-9999999999,0";
+      "1002400,200,1002300,18,9999999999,0,-9999999999,0";
   LOB_CHECK_EQ(count_book_levels(line), std::size_t{2});
   LOB_CHECK_EQ(count_book_levels(line + ","), std::size_t{2});
   LOB_CHECK_EQ(count_book_levels("1,2,3"), std::size_t{0});
   BookRow row;
   row.resize(2);
   LOB_CHECK(parse_book_row(line, row).ok());
-  LOB_CHECK_EQ(row.asks[0].price, 5853400);
+  LOB_CHECK_EQ(row.asks[0].price, 1002400);
   LOB_CHECK_EQ(row.asks[0].qty, 200);
-  LOB_CHECK_EQ(row.bids[0].price, 5853300);
+  LOB_CHECK_EQ(row.bids[0].price, 1002300);
   LOB_CHECK_EQ(row.bids[0].qty, 18);
   LOB_CHECK(row.asks[1].empty());
   LOB_CHECK_EQ(row.asks[1].price, 0);
   LOB_CHECK(row.bids[1].empty());
-  LOB_CHECK(parse_book_row(" 5853400 ,200,5853300,18,9999999999,0,-9999999999,0 ,", row).ok());
+  LOB_CHECK(parse_book_row(" 1002400 ,200,1002300,18,9999999999,0,-9999999999,0 ,", row).ok());
   // Wrong field counts.
-  LOB_CHECK(parse_book_row("5853400,200,5853300,18", row).code == ParseCode::WrongFieldCount);
+  LOB_CHECK(parse_book_row("1002400,200,1002300,18", row).code == ParseCode::WrongFieldCount);
   LOB_CHECK(parse_book_row(line + ",1", row).code == ParseCode::WrongFieldCount);
   LOB_CHECK(parse_book_row(line + ",,", row).code == ParseCode::WrongFieldCount);
   // Invalid levels.
-  ParseError e = parse_book_row("9999999999,5,5853300,18,9999999999,0,-9999999999,0", row);
+  ParseError e = parse_book_row("9999999999,5,1002300,18,9999999999,0,-9999999999,0", row);
   LOB_CHECK(e.code == ParseCode::InvalidLevel);
   LOB_CHECK_EQ(e.field, 1);
-  e = parse_book_row("5853400,200,-9999999999,3,9999999999,0,-9999999999,0", row);
+  e = parse_book_row("1002400,200,-9999999999,3,9999999999,0,-9999999999,0", row);
   LOB_CHECK(e.code == ParseCode::InvalidLevel);
   LOB_CHECK_EQ(e.field, 3);
-  LOB_CHECK(parse_book_row("5853400,0,5853300,18,9999999999,0,-9999999999,0", row).code ==
+  LOB_CHECK(parse_book_row("1002400,0,1002300,18,9999999999,0,-9999999999,0", row).code ==
             ParseCode::InvalidLevel);
-  LOB_CHECK(parse_book_row("5853400,200,5853300,18,-9999999999,0,-9999999999,0", row).code ==
+  LOB_CHECK(parse_book_row("1002400,200,1002300,18,-9999999999,0,-9999999999,0", row).code ==
             ParseCode::InvalidLevel);
-  LOB_CHECK(parse_book_row("5853400,200,5853300,1.5,9999999999,0,-9999999999,0", row).code ==
+  LOB_CHECK(parse_book_row("1002400,200,1002300,1.5,9999999999,0,-9999999999,0", row).code ==
             ParseCode::NotAnInteger);
 }
 
