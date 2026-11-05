@@ -21,8 +21,9 @@ if(LOB_SANITIZE)
   string(APPEND lobster_flags " -fsanitize=address,undefined")
 endif()
 string(STRIP "${lobster_flags}" lobster_flags)
-target_compile_definitions(lobster_replay PRIVATE
-  LOBSTER_BUILD_INFO="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, ${CMAKE_BUILD_TYPE}, ${lobster_flags}")
+set(lobster_build_info
+    "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, ${CMAKE_BUILD_TYPE}, ${lobster_flags}")
+target_compile_definitions(lobster_replay PRIVATE LOBSTER_BUILD_INFO="${lobster_build_info}")
 
 if(LOB_BUILD_TESTS)
   foreach(test test_format test_replay test_alloc)

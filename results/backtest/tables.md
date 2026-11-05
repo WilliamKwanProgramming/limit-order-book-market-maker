@@ -5,7 +5,7 @@
 | `--horizon` | timing | 600 | s | A&S horizon T; 10 minutes is long enough for inventory to matter |
 | `--burn-in` | timing | 300 | s | 100 mean order lifetimes, so the initial book is forgotten |
 | `--markout-tail` | timing | 10 | s | longest markout horizon, so fills near T get markouts |
-| `--ref-price` | background | 10000 | ticks | $100 at $0.01 per tick |
+| `--ref-price` | background | 10000 | ticks | 100 USD at 0.01 USD per tick |
 | `--lo-rate` | background | 1 | 1/s per side | limit-order rate at distance 1; with theta gives a few lots at the touch |
 | `--lo-alpha` | background | 0.5 | - | power-law decay of the rate with distance, the functional form of CST (2010) |
 | `--lo-levels` | background | 10 | ticks | orders land within 10 ticks of the opposite best |

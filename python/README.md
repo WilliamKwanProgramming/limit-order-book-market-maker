@@ -165,8 +165,13 @@ one deliberate bug at a time there (the working tree is not touched), rebuilds t
 runs the suite. The mutants are wrong enum mappings, reversed depth, wrong `execute_resting`
 fields, wrong replay semantics, top-of-book capture off by one, a wrong strategy mapping, a renamed
 stub parameter, and two bugs in the C++ engine (replace priority, execute fill size) that only the
-Python differential and behavior tests can see from here. Result:
-`results/python/mutation_check.txt` (MUTATION_SUMMARY).
+Python differential and behavior tests can see from here. Result in
+`results/python/mutation_check.txt`: all 12 mutants were caught, each by at least one failing
+test; the unmutated baseline passed.
+
+```bash
+python3 python/tests/mutation_check.py --out results/python/mutation_check.txt
+```
 
 ## Performance
 
@@ -177,7 +182,38 @@ pybind11 and compiler versions, load average):
 PYTHONPATH=build-python/python python3 python/bench/bench_bindings.py --out results/python/bench.txt
 ```
 
-BENCH_SUMMARY
+From `results/python/bench.txt` (git 20f211a, GCC 13.3 Release, CPython 3.13.18, numpy 2.5.3,
+7 runs each, load average 1.13 at start). **Measured on a shared 2-core cloud VM** (Intel Xeon
+@ 2.80GHz) while other jobs could run; treat as indicative.
+
+Per-call overhead, book of 300 orders, loop overhead included (200,000 iterations per loop):
+
+| Call | median calls/s | median ns/call |
+|---|---|---|
+| `submit_limit` (rests) + `cancel` | 1.46e6 | 686 |
+| `add_resting` + `execute_resting` (1 fill) | 1.30e6 | 769 |
+| `add_resting` + `submit_market`, reading `.fills` | 7.22e5 | 1385 |
+| `best_bid()` | 3.52e6 | 284 |
+| `depth(Side.Bid, 10)` | 1.27e6 | 787 |
+| `len(book)` | 5.10e6 | 196 |
+| pure-Python no-op method with 5 arguments, for scale | 2.28e7 | 44 |
+
+One bound call costs a few hundred nanoseconds. Most of that is binding overhead: `len(book)`,
+which does almost no work in C++, takes 196 ns.
+
+Bulk replay of a 5,000,000-message synthetic stream (seed 42; 45.5% adds, 4.5% partial cancels,
+34.1% deletions, 15.9% executions; about 300 orders on 25 to 32 levels per side):
+
+| `replay_lobster` | median msgs/s | min | max | median ns/msg |
+|---|---|---|---|---|
+| `capture_top=False` | 1.53e7 | 1.31e7 | 1.56e7 | 65.5 |
+| `capture_top=True` | 1.37e7 | 1.03e7 | 1.44e7 | 72.8 |
+
+This is the same order of magnitude as the C++ replay benchmark in `results/core/bench.txt`
+(the script prints the ratio of medians). The two streams are generated differently, so only the
+order of magnitude is comparable. A Python loop making one scalar call per message would pay the
+per-call costs in the first table on every message, against 65.5 ns per message for
+`replay_lobster` (that loop was not benchmarked).
 
 ## Limitations
 

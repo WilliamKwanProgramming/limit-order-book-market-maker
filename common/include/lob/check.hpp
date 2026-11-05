@@ -56,6 +56,17 @@ std::string repr(const T& v) {
   }
 }
 
+template <class A, class B>
+void check_eq(const char* file, int line, const char* text_a, const char* text_b, const A& a,
+              const B& b) {
+  ++check_count();
+  if (!(a == b)) {
+    ++failure_count();
+    std::fprintf(stderr, "  FAIL %s:%d: %s == %s (%s vs %s)\n", file, line, text_a, text_b,
+                 repr(a).c_str(), repr(b).c_str());
+  }
+}
+
 inline int run_all(int argc, char** argv) {
   const char* filter = argc > 1 ? argv[1] : nullptr;
   int ran = 0;
@@ -89,18 +100,9 @@ inline int run_all(int argc, char** argv) {
     }                                                                                \
   } while (0)
 
-#define LOB_CHECK_EQ(a, b)                                                           \
-  do {                                                                               \
-    ++lob::testing::check_count();                                                   \
-    const auto& lob_va = (a);                                                        \
-    const auto& lob_vb = (b);                                                        \
-    if (!(lob_va == lob_vb)) {                                                       \
-      ++lob::testing::failure_count();                                               \
-      std::fprintf(stderr, "  FAIL %s:%d: %s == %s (%s vs %s)\n", __FILE__, __LINE__, \
-                   #a, #b, lob::testing::repr(lob_va).c_str(),                       \
-                   lob::testing::repr(lob_vb).c_str());                              \
-    }                                                                                \
-  } while (0)
+// The operands are function arguments, so any temporary in `a` or `b` (including one that a
+// returned reference points into) lives until the check is done.
+#define LOB_CHECK_EQ(a, b) lob::testing::check_eq(__FILE__, __LINE__, #a, #b, (a), (b))
 
 #define LOB_CHECK_NEAR(a, b, tol)                                                    \
   do {                                                                               \

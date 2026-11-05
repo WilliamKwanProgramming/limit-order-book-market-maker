@@ -51,7 +51,8 @@ def validation_tables():
     t2 = ["| Seed | Levels N | Type 1 / 2 / 3 / 4 / 5 / 6 / 7 | Multi-row sweeps |"
           " Rows with an empty side | Rows with fewer than N levels | Rows sharing a timestamp |",
           "|---|---|---|---|---|---|---|"]
-    t3 = ["| Seed | Levels N | Mean spread (ticks) | Mean best bid size | Mean best ask size |"
+    t3 = ["| Seed | Levels N | Mean spread (price units) | Mean best bid size |"
+          " Mean best ask size |"
           " Messages changing a best price | Executed vs bids / asks |",
           "|---|---|---|---|---|---|---|"]
     for n in names:
@@ -133,7 +134,8 @@ def main():
         "",
     ] + t1 + [
         "",
-        "**Table 2.** What the synthetic files contain (from the generator's own counters).",
+        "**Table 2.** What the synthetic files contain (from the generator's own counters). For "
+        "one seed the message stream does not depend on N; only the order-book file does.",
         "",
     ] + t2 + [
         "",
