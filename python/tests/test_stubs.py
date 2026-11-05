@@ -8,6 +8,7 @@
 """
 
 import ast
+import os
 import pathlib
 import subprocess
 import sys
@@ -102,8 +103,13 @@ def test_every_public_callable_is_stubbed():
 
 def test_stubtest(tmp_path):
     pytest.importorskip("mypy")
+    # The subprocess runs in tmp_path, so a relative PYTHONPATH (as in python/README.md) would no
+    # longer find the package: point it at the directory the tested lobsim was imported from.
+    env = dict(os.environ)
+    found_in = str(pathlib.Path(lobsim.__file__).resolve().parents[1])
+    env["PYTHONPATH"] = os.pathsep.join(p for p in (found_in, env.get("PYTHONPATH")) if p)
     proc = subprocess.run(
         [sys.executable, "-m", "mypy.stubtest", "lobsim",
          "--allowlist", str(HERE / "stubtest_allowlist.txt")],
-        cwd=tmp_path, capture_output=True, text=True)
+        cwd=tmp_path, env=env, capture_output=True, text=True)
     assert proc.returncode == 0, proc.stdout + proc.stderr
