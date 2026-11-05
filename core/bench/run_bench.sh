@@ -3,8 +3,11 @@
 # under results/core/, together with the command, git commit and machine load.
 #
 #   core/bench/run_bench.sh                    -> results/core/bench.txt
-#   core/bench/run_bench.sh --compare-levels   -> also results/core/bench_map_levels.txt
-#                                                 (same benchmark, std::map price levels)
+#   core/bench/run_bench.sh --compare-levels   -> also results/core/bench_compare_levels.txt: the
+#                                                 sorted-vector and std::map price-level containers
+#                                                 run in alternating (AB/BA) blocks by
+#                                                 core/bench/compare_levels.py, so that drift in the
+#                                                 shared VM's speed cannot be mistaken for an effect
 #
 # The machine this was written on is a shared 2-core cloud VM, so the script waits until the
 # 1-minute load average is below MAX_LOAD (default 1.3) before each benchmark and records the load.
@@ -69,5 +72,11 @@ build_and_run() {
 
 build_and_run build-core-bench results/core/bench.txt
 if ((compare_levels)); then
-  build_and_run build-core-bench-map results/core/bench_map_levels.txt -DLOB_CORE_MAP_LEVELS=ON
+  # Build the std::map variant (not run on its own) and alternate the two binaries.
+  CXX="$cxx" cmake -S . -B build-core-bench-map -G Ninja -DCMAKE_BUILD_TYPE=Release -DLOB_NATIVE=OFF \
+    -DLOB_SANITIZE=OFF -DLOB_BUILD_TESTS=OFF -DLOB_CORE_MAP_LEVELS=ON >/dev/null
+  cmake --build build-core-bench-map -j2 --target bench_replay >/dev/null
+  python3 core/bench/compare_levels.py --vector-bin build-core-bench/core/bench_replay \
+    --map-bin build-core-bench-map/core/bench_replay --out results/core/bench_compare_levels.txt \
+    --max-load "$max_load"
 fi
