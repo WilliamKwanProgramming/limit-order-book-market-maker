@@ -7,6 +7,8 @@ Simulation i of a call uses the random path Rng::for_stream(seed, i), exactly as
 paper_replication command-line tool does, so the same seed reproduces results/paper/.
 """
 
+from typing import TypedDict
+
 from ._lobsim import paper as _paper
 
 SimResults = _paper.SimResults
@@ -14,4 +16,16 @@ simulate = _paper.simulate
 summarize = _paper.summarize
 STRATEGIES = _paper.STRATEGIES
 
-__all__ = ["STRATEGIES", "SimResults", "simulate", "summarize"]
+
+class Summary(TypedDict):
+    """The dict returned by summarize(); keys match results/paper/*/summary.csv."""
+
+    n: int
+    mean_spread: float
+    mean_profit: float
+    sd_profit: float
+    mean_final_q: float
+    sd_final_q: float
+
+
+__all__ = ["STRATEGIES", "SimResults", "Summary", "simulate", "summarize"]

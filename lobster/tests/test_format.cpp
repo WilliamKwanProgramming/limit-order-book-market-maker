@@ -272,9 +272,12 @@ LOB_TEST(message_random_round_trip) {
       want.price = rng.uniform_int(-2, 99999999);
       want.direction = rng.uniform_int(-2, 2);
     }
-    const auto pad = [&]() { return std::string(static_cast<std::size_t>(rng.uniform_int(0, 1)), ' '); };
+    const auto pad = [&]() {
+      return std::string(static_cast<std::size_t>(rng.uniform_int(0, 1)), ' ');
+    };
     std::string line = pad() + std::to_string(sec) + (digits ? "." + fs : "") + pad();
-    for (std::int64_t v : {std::int64_t{want.type}, want.id, want.size, want.price, want.direction}) {
+    const std::int64_t type64 = want.type;
+    for (std::int64_t v : {type64, want.id, want.size, want.price, want.direction}) {
       line += "," + pad() + std::to_string(v) + pad();
     }
     if (rng.bernoulli(0.2)) line += ",";
@@ -338,8 +341,8 @@ LOB_TEST(line_reader_terminators) {
   LOB_CHECK_EQ(lines[3], std::string("ccc"));
   LOB_CHECK_EQ(read_lines("x\n", 16).size(), std::size_t{1});
   LOB_CHECK_EQ(read_lines("", 16).size(), std::size_t{0});
-  LOB_CHECK_EQ(read_lines("x\r", 16)[0], std::string("x"));
-  LOB_CHECK_EQ(read_lines("\xEF\xBB\xBFx,y\n", 16)[0], std::string("x,y"));
+  LOB_CHECK(read_lines("x\r", 16) == std::vector<std::string>{"x"});
+  LOB_CHECK(read_lines("\xEF\xBB\xBFx,y\n", 16) == std::vector<std::string>{"x,y"});
 }
 
 LOB_TEST(line_reader_random_buffers) {

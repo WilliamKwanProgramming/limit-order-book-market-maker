@@ -25,7 +25,7 @@ target_compile_definitions(lobster_replay PRIVATE
   LOBSTER_BUILD_INFO="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, ${CMAKE_BUILD_TYPE}, ${lobster_flags}")
 
 if(LOB_BUILD_TESTS)
-  foreach(test test_format test_replay)
+  foreach(test test_format test_replay test_alloc)
     add_executable(lobster_${test} tests/${test}.cpp)
     target_link_libraries(lobster_${test} PRIVATE lob::lobster)
     add_test(NAME lobster_${test} COMMAND lobster_${test})

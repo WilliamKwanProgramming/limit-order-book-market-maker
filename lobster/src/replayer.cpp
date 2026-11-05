@@ -38,7 +38,8 @@ namespace {
 bool undo_on_side(const Message& m, std::vector<BookLevel>& lv, std::size_t n) {
   const bool bid = m.side() == Side::Bid;
   const auto better = [bid](Price a, Price b) { return bid ? a > b : a < b; };
-  auto it = std::find_if(lv.begin(), lv.end(), [&](const BookLevel& l) { return l.price == m.price; });
+  auto it =
+      std::find_if(lv.begin(), lv.end(), [&](const BookLevel& l) { return l.price == m.price; });
   if (m.type == 1) {
     if (it == lv.end()) {
       // Not visible: fine only if the side is full and the price lies behind its last level.

@@ -40,6 +40,7 @@ struct ValidationReport {
   std::uint64_t unchanged_violations = 0;  // ... that differed
   std::uint64_t first_unchanged_violation_index = 0;
   std::uint64_t skipped = 0;  // rows not compared (malformed message or row)
+  std::uint64_t last_mismatch_index = 0;  // 1-based message number of the last mismatching row
   MismatchDetail first;
 };
 

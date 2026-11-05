@@ -59,6 +59,7 @@ bool Validator::check(const OrderBook& book, const Message& m, std::uint64_t ind
   }
   if (!any) return true;
   ++report_.mismatched;
+  report_.last_mismatch_index = index;
   if (structure) {
     ++report_.price_structure;
   } else {

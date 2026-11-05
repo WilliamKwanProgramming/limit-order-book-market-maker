@@ -1,0 +1,17 @@
+# mypy.stubtest allowlist for lobsim: differences that come from pybind11, not from the API.
+# pybind11 classes use the pybind11_type metaclass.
+lobsim.Fill
+lobsim.Level
+lobsim.OrderBook
+lobsim.OrderInfo
+lobsim.ReplayResult
+lobsim.SubmitResult
+lobsim.paper.SimResults
+# Result classes have no Python constructor (calling them raises TypeError); the stubs omit
+# __init__ on purpose.
+lobsim.ReplayResult.__init__
+lobsim.SubmitResult.__init__
+lobsim.paper.SimResults.__init__
+# Internal capsule that pybind11::native_enum attaches to the enum class.
+lobsim.Side.__pybind11_native_enum__
+lobsim.Status.__pybind11_native_enum__

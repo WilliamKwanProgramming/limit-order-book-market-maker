@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     return 2;
   }
   if (opt.bootstrap && book_path.empty()) {
-    std::fprintf(stderr, "lobster_replay: --bootstrap needs --book (it seeds from the first row)\n");
+    std::fprintf(stderr, "lobster_replay: --bootstrap needs --book (it seeds from row 1)\n");
     return 2;
   }
 

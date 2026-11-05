@@ -5,7 +5,7 @@ from typing import Literal, TypedDict, final
 import numpy as np
 import numpy.typing as npt
 
-__all__ = ["STRATEGIES", "SimResults", "simulate", "summarize"]
+__all__ = ["STRATEGIES", "SimResults", "Summary", "simulate", "summarize"]
 
 STRATEGIES: tuple[str, ...]
 
