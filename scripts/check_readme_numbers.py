@@ -6,6 +6,10 @@ number with its interval) and a text that must occur in README.md. When a result
 its number changes, the first test fails; when the README is edited by hand and no longer quotes the
 number, the second fails. An optional fourth element is the number of times the file text must occur.
 It also fails when a relative link or image in README.md points to a file that does not exist.
+The module READMEs (core, paper, lobster, backtest, python) are checked more loosely: every number
+written with an interval, "x [lo, hi]", or with a standard error, "x ± e", must occur in that
+form in a text file (.md or .txt) under results/<module>/. Other numbers in their prose and the
+benchmark tables typed into core/ and python/ are not checked.
 
 Usage: python3 scripts/check_readme_numbers.py      (exit status 1 on any problem)
 Standard library only.
@@ -77,6 +81,28 @@ def broken_links(readme: str) -> list[str]:
     return missing
 
 
+MODULES = ("core", "paper", "lobster", "backtest", "python")
+NUMBER = r"-?\d+(?:\.\d+)?(?:e[+-]?\d+)?"
+QUOTED = re.compile(rf"{NUMBER} (?:\[{NUMBER}, {NUMBER}\]|± {NUMBER[1:]})")
+
+
+def missing_quoted_numbers(module: str) -> tuple[int, list[str]]:
+    """Intervals and standard errors written in <module>/README.md that no results text file has.
+
+    Returns the number of distinct quoted items and the list of those not found, in the form they
+    have in the README, among the .md and .txt files under results/<module>/.
+    """
+    readme = ROOT / module / "README.md"
+    if not readme.exists():
+        return 0, []
+    quoted = sorted(set(QUOTED.findall(readme.read_text(encoding="utf-8"))))
+    results = ""
+    for f in sorted((ROOT / "results" / module).rglob("*")):
+        if f.is_file() and f.suffix in (".md", ".txt"):
+            results += f.read_text(encoding="utf-8", errors="replace")
+    return len(quoted), [q for q in quoted if q not in results]
+
+
 def main() -> int:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     texts: dict[str, str] = {}
@@ -102,7 +128,18 @@ def main() -> int:
         if in_readme not in readme:
             print(f"README.md does not contain {in_readme!r} (checked against {path})")
             problems += 1
-    print(f"{len(CHECKS)} checks, {problems} problems")
+    n_checks = len(CHECKS)
+    for module in MODULES:
+        n_quoted, missing = missing_quoted_numbers(module)
+        n_checks += 1
+        for item in missing:
+            print(f"{module}/README.md quotes {item!r}, which is in no .md or .txt file under "
+                  f"results/{module}/")
+            problems += 1
+        if n_quoted:
+            print(f"{module}/README.md: {n_quoted - len(missing)} of {n_quoted} quoted intervals and "
+                  f"standard errors found in results/{module}/")
+    print(f"{n_checks} checks, {problems} problems")
     return 1 if problems else 0
 
 

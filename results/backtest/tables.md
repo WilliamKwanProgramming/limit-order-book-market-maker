@@ -41,7 +41,7 @@
 | stress (0.1, 0.75) | 0.400 | 1.401 | 1.152 | 1.143 | 1.344 | 1.416 | 1.362 | 4.66 | 0.9965 | 1.87 |
 | stress (0.1, 0.9) | 0.993 | 1.994 | 1.717 | 1.772 | 2.642 | 3.126 | 1.450 | 4.54 | 0.9782 | 5.08 |
 
-**A&S estimates** (calibration run, 1000 episodes, seed 101): σ = 0.6764 ticks/√s (10 s returns), k = 1.0930 per tick, A = 0.4467 per second per side, R² of the log-linear fit 0.983 over 13 points.
+**A&S estimates** (calibration run, 1000 episodes, seed 101): σ = 0.6764 ticks/√s (10 s returns), k = 1.0930 per tick, A = 0.4467 per second per side, R² of the log-linear fit 0.983 over 13 points. The points are cumulative counts, so each contains the next and they are strongly dependent: R² overstates how well one exponential describes the data, and the fit misses the rate at the touch by about a factor of two (Table 2a), partly by construction, since every market order reaches at least half a tick. No interval is given for k or σ here; Table 8 gives their sampling spread across blocks of episodes.
 
 **Table 2a. k fit.** Rate per side of market orders whose deepest execution is at least δ ticks from the mid before the order.
 
