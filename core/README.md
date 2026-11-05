@@ -44,23 +44,29 @@ priority on a size increase; a partial reduce skipped the side total); both were
 
 ## Results snapshot
 
-From `results/core/bench.txt` (GCC 13.3, `-O3 -DNDEBUG`, Release, 20 M synthetic messages, 7 runs,
-seed 42, load average 0.52 at start). **Measured on a shared 2-core cloud VM** (Intel Xeon
-@ 2.80GHz) while another job could run; treat as indicative.
+From `results/core/bench.txt` (run from the commit recorded in that file; GCC 13.3, `-O3
+-DNDEBUG`, Release, 20 M synthetic messages, 7 runs, seed 42). **Measured on a shared 2-core cloud
+VM** (Intel Xeon @ 2.80 GHz) whose load average was 0.00 at the start and 0.34 at the end of the
+run; treat the numbers as indicative.
 
 | Stream | best ns/msg | median ns/msg | worst ns/msg | median msgs/s |
 |---|---|---|---|---|
-| replay (48.9% add, 41.1% delete, 0.8% partial cancel, 9.2% execute) | 59.9 | 63.5 | 65.6 | 1.57e7 |
-| matching (49.3% passive limit, 35.5% cancel, 7.6% marketable limit, 7.6% market) | 62.4 | 66.9 | 70.6 | 1.49e7 |
+| replay (48.9% add, 41.1% delete, 0.8% partial cancel, 9.2% execute) | 58.2 | 62.0 | 69.6 | 1.61e7 |
+| matching (49.3% passive limit, 35.5% cancel, 7.6% marketable limit, 7.6% market) | 65.6 | 77.2 | 88.7 | 1.30e7 |
 
-The books hold about 300 orders over 41 to 51 price levels. The streams are **synthetic**
-(generated in `bench/bench_replay.cpp`), not market data.
+The speed of this VM varies between sessions. `results/core/bench_busy_vm_session.txt` is an earlier
+run of the same code on a busier VM, with medians of 75.4 ns/msg (replay) and 89.9 ns/msg
+(matching), which are 22% and 16% slower than the medians above. Read the results as "roughly
+11 to 16 million messages per second on this VM", not as a precise figure. The books hold about 300
+orders over 41 to 51 price levels, so the working set is small and fits in cache. The streams are
+**synthetic** (generated in `bench/bench_replay.cpp`), not market data.
 
-**Level container comparison** (`results/core/bench_map_levels.txt`, same benchmark with
-`-DLOB_CORE_MAP_LEVELS=ON`, load 0.69 at start): with `std::map` levels the median was 61.7 ns/msg
-(replay) and 81.4 ns/msg (matching). Replay is a tie within run-to-run noise; matching is about
-18% faster with the sorted vector, so the vector is the default. Both variants pass all tests and
-give identical fill checksums. A direct-indexed price ladder was **not** tried.
+**Level container comparison** (`results/core/bench_compare_levels.txt`). The default sorted
+vector (A) and the `std::map` variant (B, `-DLOB_CORE_MAP_LEVELS=ON`) were run on the same streams
+in 8 counterbalanced AB/BA blocks, so that drift in the VM's speed cannot be mistaken for an effect
+of the container. The vector was faster in 7 of 8 blocks on the replay stream (median ratio B/A
+1.14) and in 8 of 8 blocks on the matching stream (median ratio 1.20). Both variants pass all tests
+and produce identical fill checksums. A direct-indexed price ladder was **not** tried.
 
 ## Limitations
 
