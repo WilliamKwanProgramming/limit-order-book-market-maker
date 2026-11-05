@@ -194,7 +194,13 @@ backtest/reproduce.sh build-backtest   # runs everything, then make_tables.py an
 (command, seed, all parameters, wall time, load average), `summary.csv`, `diagnostics.csv`,
 `comparison.csv` and, with `--calibrate 1`, `calibration.csv` and `reach.csv`. `stress_test` does
 the same for every cell of `--nu-grid` $\times$ `--nbr-grid` (plus $\nu = 0$ once). Both print
-`--help`. Output is deterministic for a given seed and build; `log` and `exp` can differ in the
+`--help`. For sensitivity runs, `--k-scale X` and `--sigma-scale X` (default 1) give the as, sym
+and symtv arms $k$ = X $\times$ `--as-k` and $\sigma$ = X $\times$ `--as-sigma` while $\gamma$
+stays as written in the strategy list; `run.txt` records both scales. `backtest_run --calibrate 1
+--calib-blocks N` also writes `calibration_blocks.csv`, $\hat\sigma$ and $\hat k$ on N
+consecutive blocks of episodes (each block's $k$ fit on the $\delta$ points of the full fit).
+`comparison.csv` has a column `replicates_kept`: the number of bootstrap replicates with a finite
+value behind each interval. Output is deterministic for a given seed and build; `log` and `exp` can differ in the
 last bit across C libraries, so results on another platform are only statistically identical.
 
 `backtest/reproduce.sh` runs the calibration (seed 101), derives the $\gamma$ grid from

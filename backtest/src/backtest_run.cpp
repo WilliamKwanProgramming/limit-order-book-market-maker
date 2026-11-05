@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
 
   const std::string load_start = cli::loadavg();
   const auto t0 = std::chrono::steady_clock::now();
-  const CellResults res = run_cell(o.sim, specs, o.calib, o.seed, o.episodes);
+  const CellResults res = run_cell(o.sim, specs, o.as_inputs(), o.seed, o.episodes);
   const double wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
   if (std::FILE* f = cli::open_out(o.out_dir, "summary.csv")) {
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   }
   if (o.bootstrap > 0) {
     if (std::FILE* f = cli::open_out(o.out_dir, "comparison.csv")) {
-      std::fprintf(f, "a,b,replicates,statistic,estimate,ci_lo,ci_hi\n");
+      std::fprintf(f, "a,b,replicates,statistic,estimate,ci_lo,ci_hi,replicates_kept\n");
       cli::write_comparisons(f, "", specs, res, o.sim.horizon, o.bootstrap, o.seed, 0);
       std::fclose(f);
     }
@@ -90,6 +90,17 @@ int main(int argc, char** argv) {
         std::fprintf(f, "%g,%.10g,%lld,%d\n", kf.delta[j], kf.rate[j],
                      static_cast<long long>(kf.count[j]), kf.used[j] ? 1 : 0);
       std::fclose(f);
+    }
+    if (o.calib_blocks > 0) {
+      if (std::FILE* f = cli::open_out(o.out_dir, "calibration_blocks.csv")) {
+        std::fprintf(f, "block,first_episode,episodes,sigma,k,A,k_points\n");
+        const auto blocks = calibration_blocks(eps, o.sim.horizon, o.calib_blocks, kf);
+        for (std::size_t b = 0; b < blocks.size(); ++b)
+          std::fprintf(f, "%zu,%d,%d,%.10g,%.10g,%.10g,%d\n", b, blocks[b].first,
+                       blocks[b].episodes, blocks[b].sigma, blocks[b].k, blocks[b].A,
+                       blocks[b].points);
+        std::fclose(f);
+      }
     }
     std::printf("calibration: sigma(10s) %.6f ticks/sqrt(s), k %.6f /tick, A %.6f /s, r2 %.4f\n",
                 d.sigma[2], kf.k, kf.A, kf.r2);
