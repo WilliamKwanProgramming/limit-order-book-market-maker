@@ -231,9 +231,11 @@ def main(argv=None) -> int:
     log(f"# git:      {git('rev-parse', 'HEAD')} "
         f"({'uncommitted changes in python/' if dirty else 'clean python/'})")
     log(f"# date:     {datetime.datetime.now(datetime.timezone.utc):%Y-%m-%dT%H:%M:%SZ}")
-    log(f"# python:   {platform.python_version()} ({sys.executable}); numpy {np.__version__}; "
+    log(f"# python:   {platform.python_version()}; numpy {np.__version__}; "
         f"pybind11 {info['pybind11']}")
-    log(f"# lobsim:   {pathlib.Path(lobsim._lobsim.__file__).resolve()}")
+    so_path = pathlib.Path(lobsim._lobsim.__file__).resolve()
+    # Show the extension relative to the repository so that no machine-specific path is recorded.
+    log(f"# lobsim:   {so_path.relative_to(REPO) if so_path.is_relative_to(REPO) else so_path.name}")
     log(f"# compiler: {info['compiler']}; build type {info['build_type']}; flags "
         f"'{info['cxx_flags']}' (plus pybind11_add_module's -fvisibility=hidden and LTO)")
     log(f"# cpu:      {cpu_model()}, {os.cpu_count()} logical CPUs")
