@@ -35,19 +35,27 @@ def skew_c(gamma):
     return gamma * SIGMA**2 * T / 2
 
 
+KIND_NAME = {"as": "A&S", "sym": "Symmetric", "symtv": "SymTV"}
+
+
 def label(row):
-    if row.kind == "as":
-        return f"A&S, c={skew_c(row.param):.2g}"
-    if row.kind == "sym":
-        return f"Symmetric, c={skew_c(row.param):.2g}"
+    if row.kind in KIND_NAME:
+        return f"{KIND_NAME[row.kind]}, c={skew_c(row.param):.2g}"
     return {"naive": "NaiveTouch", "none": "None"}.get(row.kind, row.strategy)
 
 
 def name_of(spec):
     kind, _, p = spec.partition(":")
-    if kind in ("as", "sym"):
-        return ("A&S" if kind == "as" else "Symmetric") + f", c={skew_c(float(p)):.2g}"
+    if kind in KIND_NAME:
+        return f"{KIND_NAME[kind]}, c={skew_c(float(p)):.2g}"
     return {"naive": "NaiveTouch", "none": "None"}.get(kind, spec)
+
+
+def by_gamma(s):
+    """Rows ordered NaiveTouch first, then A&S, SymTV, Symmetric for each gamma."""
+    order = {"naive": 0, "as": 1, "symtv": 2, "sym": 3}
+    s = s.assign(_g=np.where(s.kind == "naive", -1.0, s.param), _o=s.kind.map(order).fillna(9))
+    return s.sort_values(["_g", "_o"], kind="stable").drop(columns=["_g", "_o"])
 
 
 def ci(est, lo, hi, fmt):
@@ -105,11 +113,11 @@ def calibration_table():
 
 def baseline_table():
     s = pd.read_csv(RES / "baseline" / "summary.csv")
-    s = s[s.kind != "none"]
+    s = by_gamma(s[s.kind != "none"])
     rows = []
     for _, r in s.iterrows():
         se = r.sd_pnl / np.sqrt(r.n)
-        rows.append([label(r), f"{r.param:.3g}" if r.kind in ("as", "sym") else "-",
+        rows.append([label(r), f"{r.param:.3g}" if r.kind in KIND_NAME else "-",
                      f"{r.mean_pnl:.1f} ± {1.96 * se:.1f}", f"{r.sd_pnl:.1f}", f"{r.sharpe:.2f}",
                      f"{r.sd_final_inv:.2f}", f"{r.mean_abs_inv:.2f}", f"{r.mean_fills:.0f}",
                      f"{r.fill_rate:.3f}", f"{r.quote_dist:.2f}", f"{r.spread_captured:.2f}",
@@ -123,6 +131,8 @@ def baseline_table():
 
 def comparison_table(path, prefix_cols=(), as_only=False):
     c = pd.read_csv(path)
+    # Pairs with the symtv arm are in the decomposition table.
+    c = c[~c.a.str.startswith("symtv:") & ~c.b.str.startswith("symtv:")]
     if as_only:
         c = c[c.a.str.startswith("as:")]
     keep = ["mean_pnl_diff", "sd_pnl_ratio", "sd_final_inv_ratio", "mean_abs_inv_diff",
@@ -147,6 +157,7 @@ def comparison_table(path, prefix_cols=(), as_only=False):
 def stress_table():
     s = pd.read_csv(RES / "stress" / "stress_summary.csv")
     s = s[s.kind != "none"]
+    s = pd.concat([by_gamma(g) for _, g in s.groupby(["nu", "n_br"], sort=False)])
     rows = []
     for _, r in s.iterrows():
         cell = "(0, -)" if r.nu == 0 else f"({r.nu:g}, {r.n_br:g})"
@@ -158,6 +169,69 @@ def stress_table():
     return md(["Cell (ν, n_br)", "Strategy", "Mean PnL (USD) ± 95%", "SD PnL (USD)", "Mean/SD",
                "SD q_T (lots)", "Mean abs q (lots)", "Fills", "Fills per quote-s",
                "Spread captured (ticks)", "Markout 1 s", "Markout 10 s", "Fill var/mean"], rows), s
+
+
+def skew_share(skew_ratio, both_ratio):
+    """ln(A&S/SymTV) / ln(A&S/Symmetric); undefined (nan) when A&S and Symmetric have equal SDs."""
+    return np.log(skew_ratio) / np.log(both_ratio) if both_ratio != 1 else float("nan")
+
+
+def fmt_share(x):
+    return "undefined (ratio 1)" if np.isnan(x) else f"{x:.2f}"
+
+
+DECOMP_STATS = [("mean_pnl_diff", "+.1f"), ("sd_pnl_ratio", ".3f"), ("sd_final_inv_ratio", ".3f"),
+                ("sharpe_diff", "+.3f")]
+
+
+def decomposition_rows(c, gamma, lead):
+    """A&S/Sym, A&S/SymTV, SymTV/Sym at one gamma, and the product of the two factor ratios.
+
+    The SD ratios multiply exactly (same episodes): A&S/Sym = A&S/SymTV x SymTV/Sym. The skew share
+    is ln(A&S/SymTV) / ln(A&S/Sym) for the SD of PnL (a point estimate)."""
+    a, s, tv = f"as:{gamma}", f"sym:{gamma}", f"symtv:{gamma}"
+    pairs = [(a, s, "A&S vs Symmetric (both effects)"), (a, tv, "A&S vs SymTV (skew)"),
+             (tv, s, "SymTV vs Symmetric (spread term)")]
+    rows, est = [], {}
+    for x, y, what in pairs:
+        g = c[(c.a == x) & (c.b == y)].set_index("statistic")
+        est[what] = g.estimate
+        rows.append(lead + [what] + [ci(g.loc[k, "estimate"], g.loc[k, "ci_lo"], g.loc[k, "ci_hi"], f)
+                                     for k, f in DECOMP_STATS] + ["-"])
+    both, skew, spread = (est[p[2]] for p in pairs)
+    prod = {k: skew[k] * spread[k] for k in ("sd_pnl_ratio", "sd_final_inv_ratio")}
+    for k, v in prod.items():  # the identity holds up to the 10 digits written to the CSV
+        assert abs(v / both[k] - 1) < 1e-8, (gamma, k, v, both[k])
+    share = skew_share(skew["sd_pnl_ratio"], both["sd_pnl_ratio"])
+    rows.append(lead + ["product of the two factors", "-", f"{prod['sd_pnl_ratio']:.3f}",
+                        f"{prod['sd_final_inv_ratio']:.3f}", "-", fmt_share(share)])
+    return rows, share
+
+
+DECOMP_HEAD = ["Mean PnL A − B (USD)", "SD PnL A / B", "SD q_T A / B", "Mean/SD A − B",
+               "Skew share of ln(SD PnL ratio)"]
+
+
+def decomposition_table(full):
+    """Table 7. full=False: the README cells (baseline, stress (0, -) and (0.1, 0.9))."""
+    bc = pd.read_csv(RES / "baseline" / "comparison.csv")
+    sc = pd.read_csv(RES / "stress" / "stress_comparison.csv")
+    rows, shares = [], {}
+    gammas = sorted({a[3:] for a in bc.a if a.startswith("as:")}, key=float)
+    for g in gammas:
+        r, sh = decomposition_rows(bc, g, ["uninformed", f"{skew_c(float(g)):.2g}"])
+        rows += r
+        shares[("uninformed", g)] = sh
+    g = next(a[3:] for a in sc.a if a.startswith("as:"))
+    for (nu, nb), cell in sc.groupby(["nu", "n_br"], sort=False):
+        name = "stress (0, -)" if nu == 0 else f"stress ({nu:g}, {nb:g})"
+        keep = nu == 0 or (np.isclose(nu, 0.1) and np.isclose(nb, 0.9))
+        if not (full or keep):
+            continue
+        r, sh = decomposition_rows(cell, g, [name, f"{skew_c(float(g)):.2g}"])
+        rows += r
+        shares[name] = sh
+    return md(["Run", "c", "A vs B"] + DECOMP_HEAD, rows), shares
 
 
 def fmt_iv(c, a, b, stat, fmt, **cell):
@@ -222,6 +296,26 @@ def key_results():
         f"{asx.fill_dispersion.max():.2f}, NaiveTouch {nvx.fill_dispersion.min():.2f} to "
         f"{nvx.fill_dispersion.max():.2f} across the stress grid; spread captured per fill by A&S "
         f"stays between {asx.spread_captured.min():.2f} and {asx.spread_captured.max():.2f} ticks.")
+    # Decomposition (Table 7): the rows named in the pre-specified reading.
+    gm = a_s.strategy.iloc[2][3:]
+    for name, c, g, cell in [("uninformed, c=0.1", bc, gm, {}),
+                             ("uninformed, c=1", bc, g_hi[3:], {}),
+                             ("stress (0, -), c=0.1", sc, a_st[3:], {"nu": 0}),
+                             ("stress (0.1, 0.9), c=0.1", sc, a_st[3:], {"nu": 0.1, "n_br": 0.9})]:
+        both = fmt_iv(c, f"as:{g}", f"sym:{g}", "sd_pnl_ratio", ".3f", **cell)
+        skew = fmt_iv(c, f"as:{g}", f"symtv:{g}", "sd_pnl_ratio", ".3f", **cell)
+        spread = fmt_iv(c, f"symtv:{g}", f"sym:{g}", "sd_pnl_ratio", ".3f", **cell)
+        d = c
+        for k, v in cell.items():
+            d = d[np.isclose(d[k], v)]
+        e = d[d.statistic == "sd_pnl_ratio"].set_index(["a", "b"]).estimate
+        share = skew_share(e[(f"as:{g}", f"symtv:{g}")], e[(f"as:{g}", f"sym:{g}")])
+        inv_skew = fmt_iv(c, f"as:{g}", f"symtv:{g}", "sd_final_inv_ratio", ".3f", **cell)
+        inv_spread = fmt_iv(c, f"symtv:{g}", f"sym:{g}", "sd_final_inv_ratio", ".3f", **cell)
+        out.append(
+            f"- Decomposition, {name}: SD PnL ratio A&S/Symmetric {both} = A&S/SymTV (skew) "
+            f"{skew} × SymTV/Symmetric (spread term) {spread}; skew share {fmt_share(share)}. SD q_T "
+            f"ratio A&S/SymTV {inv_skew}, SymTV/Symmetric {inv_spread}.")
     r05 = reach[np.isclose(reach.delta, 0.5)].iloc[0]
     out.append(
         f"- k fit at the touch: measured λ(0.5) = {r05.rate:.3f}/s against "
@@ -245,6 +339,8 @@ def main():
     t_scmp_s, _ = comparison_table(RES / "stress" / "stress_comparison.csv", ("nu", "n_br"),
                                    as_only=True)
     reps = pd.read_csv(RES / "baseline" / "comparison.csv").replicates.iloc[0]
+    t_dec_full, _ = decomposition_table(full=True)
+    t_dec, _ = decomposition_table(full=False)
 
     est = (f"**A&S estimates** (calibration run, {n_cal} episodes, seed {seeds['calibration']}): "
            f"σ = {SIGMA:.4f} ticks/√s (10 s returns), k = {K:.4f} per tick, "
@@ -273,12 +369,19 @@ def main():
         f"**Table 5. Stress grid** ({n_stress} episodes per strategy and cell, seed "
         f"{seeds['stress']}; cell (0, -) has no informed flow).", t_stress,
         "**Table 6. Paired comparisons across the stress grid** (same bootstrap).", t_scmp,
+        "**Table 7. Inventory skew and spread term, separated** (simulated; same runs and bootstrap "
+        "as Tables 4 and 6). SymTV quotes the mid ∓ half of A&S's spread at the current time "
+        "with no skew, so A&S vs SymTV isolates the inventory skew and SymTV vs Symmetric the "
+        "time-varying spread term. The SD ratios multiply exactly: the product row equals the "
+        "A&S vs Symmetric row. Skew share = ln(SD PnL ratio A&S/SymTV) / ln(SD PnL ratio "
+        "A&S/Symmetric), a point estimate with no interval.", t_dec_full,
     ]
     body = "\n\n".join(parts) + "\n"
     # The README shows A&S comparisons only; tables.md also has Symmetric against NaiveTouch.
-    short = "\n\n".join(p if p is not t_cmp and p is not t_scmp else
-                         (t_cmp_s if p is t_cmp else t_scmp_s) for p in parts)
-    short += ("\n\nSymmetric against NaiveTouch comparisons are in `results/backtest/tables.md`."
+    swap = {id(t_cmp): t_cmp_s, id(t_scmp): t_scmp_s, id(t_dec_full): t_dec}
+    short = "\n\n".join(swap.get(id(p), p) for p in parts)
+    short += ("\n\nSymmetric against NaiveTouch comparisons, and Table 7 for the other stress "
+              "cells, are in `results/backtest/tables.md`."
               "\n\n" + key_results() + "\n")
     (RES / "tables.md").write_text("# Backtest result tables (generated by backtest/make_tables.py)"
                                    "\n\n" + params_table() + "\n\n" + body + "\n" + key_results() + "\n")
