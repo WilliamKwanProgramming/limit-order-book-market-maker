@@ -1,6 +1,6 @@
 # Limit Order Book Simulator and Market-Making Backtester
 
-> **Status: work in progress.** This repository currently holds the project plan only. No code or results have been published yet.
+> **Status: work in progress.** This repository currently holds the project plan and build scaffolding. No engine code or results have been published yet.
 
 ## Goal
 
