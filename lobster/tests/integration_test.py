@@ -8,7 +8,9 @@
    classified as size-only.
 3. A file cut after 50,000 messages (--cut): strict without --bootstrap must stop at an unknown id;
    lenient with --bootstrap must have a mismatch rate at most half that of lenient without it
-   (see CUT_RATIO). The measured rates are printed.
+   (see CUT_RATIO). The measured rates are printed. With ghosts seeded from the generator's
+   complete book (lobster_cut_full_seed) no row may mismatch and no reference may stay
+   unexplained.
 
 Data files are written under --workdir and deleted after use. Exit code 77 = skipped.
 """
@@ -48,11 +50,13 @@ def read_summary(path):
     return out
 
 
-def generate(args, prefix, seed, levels, cut=0):
+def generate(args, prefix, seed, levels, cut=0, full_row=None):
     cmd = [sys.executable, args.synth, "--messages", str(MESSAGES), "--levels", str(levels),
            "--seed", str(seed), "--out", prefix]
     if cut:
         cmd += ["--cut", str(cut)]
+    if full_row:
+        cmd += ["--full-row", full_row]
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
     return "%s_message_%d.csv" % (prefix, levels), "%s_orderbook_%d.csv" % (prefix, levels)
 
@@ -78,11 +82,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--replay", required=True)
     ap.add_argument("--synth", required=True)
+    ap.add_argument("--full-seed", required=True, help="lobster_cut_full_seed executable")
     ap.add_argument("--workdir", required=True)
     args = ap.parse_args()
-    if not os.path.exists(args.replay) or not os.path.exists(args.synth):
-        print("skipped: missing %s or %s" % (args.replay, args.synth))
-        return 77
+    for path in (args.replay, args.synth, args.full_seed):
+        if not os.path.exists(path):
+            print("skipped: missing %s" % path)
+            return 77
     os.makedirs(args.workdir, exist_ok=True)
 
     for seed, levels in CASES:
@@ -141,7 +147,8 @@ def cut_test(args):
     seed, levels, cut = CUT_CASE
     print("cut: seed=%d levels=%d messages=%d cut=%d" % (seed, levels, MESSAGES, cut))
     prefix = os.path.join(args.workdir, "cut")
-    msgs, book = generate(args, prefix, seed, levels, cut)
+    full_row = prefix + "_full_row.csv"
+    msgs, book = generate(args, prefix, seed, levels, cut, full_row)
     rc, s = replay(args, msgs, book, prefix + "_strict")
     check(rc == 1 and s["stopped_early"] == "1", "strict without bootstrap stops (exit %d)" % rc)
     check("unknown_id" in s.get("first_anomaly_kinds", ""),
@@ -161,7 +168,20 @@ def cut_test(args):
     print("  last mismatching message without bootstrap %s, with bootstrap %s"
           % (plain.get("last_mismatch_index"), boot.get("last_mismatch_index")))
     check(boot["ghost_seeded"] == "1" and int(boot["ghosts_created"]) > 0, "ghosts were seeded")
-    remove(msgs, book)
+    out = prefix + "_full_seed"
+    rc = subprocess.run([args.full_seed, "--messages", msgs, "--book", book, "--full-row",
+                         full_row, "--out", out], stdout=subprocess.DEVNULL).returncode
+    full = read_summary(os.path.join(out, "summary.txt"))
+    print("  complete-book seeding: ghosts created %s, rows mismatched %s, unexplained %s"
+          % (full["ghosts_created"], full["rows_mismatched"], full["ghost_unexplained"]))
+    check(rc == 0 and full["rows_mismatched"] == "0",
+          "complete-book seeding: no mismatching row (exit %d)" % rc)
+    check(full["rows_checked"] == str(MESSAGES), "complete-book seeding: every row checked")
+    check(full["ghost_unexplained"] == "0" and full["ghost_shortfall"] == "0"
+          and full["anomalies"] == "0", "complete-book seeding: no anomaly")
+    check(int(full["ghosts_created"]) > int(boot["ghosts_created"]),
+          "complete-book seeding creates more ghosts than the N-level row")
+    remove(msgs, book, full_row)
 
 
 if __name__ == "__main__":

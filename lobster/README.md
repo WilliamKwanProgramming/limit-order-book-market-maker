@@ -200,7 +200,8 @@ Tests (CTest, `ctest -R lobster`):
   policy with zero anomalies, zero malformed rows and zero mismatches on every row; adding 1 to one
   size in one row must give exactly one mismatching row, at that message; and on a cut file the
   strict run must stop at an unknown id while `--bootstrap` must at least halve the lenient
-  mismatch rate (the measured rates are printed in the test log).
+  mismatch rate (the measured rates are printed in the test log), and `lobster_cut_full_seed`
+  (ghosts from the complete book) must leave no mismatching row and no anomaly.
 - `lobster_test_alloc`: a full session (parse, replay, validate, stats) over 12,000 and over
   120,000 messages must make the same number of heap allocations (counted by replacing global
   `operator new`), so nothing is allocated per message once the buffers exist.
