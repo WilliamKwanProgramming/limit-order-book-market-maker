@@ -156,7 +156,8 @@ levels use ask price 9999999999, bid price -9999999999 and size 0.
   and builds a proxy from prices, so `--stats` reports type-5 volume by "direction as written in
   the file; not observable per the public course notes", not as a buy/sell side. Rows in the form
   these sources show (halt rows, crosses with id -1 and -2, hidden executions, trailing commas) are
-  test fixtures in `lobster/tests/test_format.cpp` and `test_replay.cpp`.
+  test fixtures in `lobster/tests/test_format.cpp` and `test_replay.cpp`; only the form is taken
+  from the sources, the values are invented, and no row of a LOBSTER file is copied.
 
 *Public sources read for these notes (pages, not files; no LOBSTER file has been processed):*
 the comments of LOBSTER's demo code as quoted at
