@@ -89,7 +89,11 @@ Between the 300-order and the 1,000,000-order book the median time per message r
 of 5.3 on the replay stream and 4.1 on the matching stream. A resting order takes a 48-byte pool
 node, and the id hash table keeps at least two 16-byte slots per order, so a book of 1,000,000
 orders needs at least about 80 MB (computed from the structure sizes, not measured) against a
-2 MiB L2 cache per core and a 33 MiB shared L3 on this VM. The slowdown is probably mostly a
+2 MiB L2 cache per core and a 33 MiB shared L3 on this VM. The benchmark allocates more than that
+lower bound: it reserves the book for 1,101,024 orders (Run 4 of
+`results/core/bench_book_size.txt`), so the id index takes 2^22 slots of 16 bytes (67 MB, the
+smallest power of two at least twice the reserved count) and the pool 1,101,024 nodes of 48 bytes
+(53 MB), about 120 MB for these two structures (again computed, not measured). The slowdown is probably mostly a
 cache effect, but no cache-miss counters were read, and the sorted price-level vectors also get
 long (about 20,000 levels at the largest size), so how much each contributes is not known. The
 300-order row (13.7 million messages per second) is below the 16.1 million of the table above,

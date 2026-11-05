@@ -10,8 +10,10 @@ Tables in VERBATIM must appear line for line in a module README, and the benchma
 core/README.md is compared with results/core/bench.txt. The module READMEs (core, paper, lobster,
 backtest, python) are checked more loosely: every number written with an interval, "x [lo, hi]",
 or with a standard error, "x ± e", must occur in that form in a text file (.md or .txt) under
-results/<module>/. Other numbers in their prose and the benchmark tables typed into python/ are not
-checked.
+results/<module>/. PROSE lists further numbers written in the prose of README.md or a module README
+(for example the skew shares and interaction of the backtest decomposition), each with the line of
+a results file it comes from. Other numbers in the module READMEs' prose and the benchmark tables
+typed into python/ are not checked.
 
 Usage: python3 scripts/check_readme_numbers.py      (exit status 1 on any problem)
 Standard library only.
@@ -44,10 +46,14 @@ CHECKS = [
     (BT, "| (0.1, 0.9) | A&S, c=0.1 | Symmetric, c=0.1 | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] |",
      "1.047 [1.031, 1.063]"),
     # Backtest decomposition (Table 7) and sensitivity to k and sigma (Table 9), interval check (Table 10).
-    (BT, "| uninformed | 1 | A&S vs SymTV (skew) | -9.6 [-11.9, -7.0] | 0.259 [0.245, 0.272] |",
-     "0.259 [0.245, 0.272]"),
-    (BT, "| uninformed | 1 | SymTV vs Symmetric (spread term) | -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] |",
-     "0.837 [0.807, 0.867]"),
+    (BT, "| uninformed | 1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) "
+         "| -16.7 [-19.9, -13.8] | 0.216 [0.204, 0.229] |", "0.216 [0.204, 0.229]"),
+    (BT, "| uninformed | 1 | spread first: SymTV vs Symmetric (spread term, without skew) "
+         "| -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] |", "0.837 [0.807, 0.867]"),
+    (BT, "| uninformed | 1 | then A&S vs SkewConst (spread term, with skew) "
+         "| +1.8 [+1.4, +2.3] | 1.004 [0.971, 1.035] |", "1.004 [0.971, 1.035]"),
+    (BT, "| uninformed | 1 | 0.217 | 0.88 | 1.00 | 0.94 | 1.199 [1.145, 1.259] |",
+     "1.199 [1.145, 1.259]"),
     (BT, "| uninformed | 1 | ×1 | ×1 | 18.1 ± 0.9 | 14.1 | 0.209 [0.194, 0.224] |", "0.209 [0.194, 0.224]"),
     (BT, "| uninformed | 1 | ×0.5 | ×1 | 12.8 ± 0.8 | 13.4 | 0.307 [0.279, 0.343] |", "0.307 [0.279, 0.343]"),
     (BT, "| uninformed | 1 | ×2 | ×1 | 15.9 ± 0.8 | 12.8 | 0.168 [0.154, 0.183] |", "0.168 [0.154, 0.183]"),
@@ -72,6 +78,40 @@ CHECKS = [
     ("results/lobster/mutation_check.txt", "13 of 13 mutants caught", "13 of 13 mutants caught"),
     ("results/python/mutation_check.txt", "12 of 12 mutants caught", "12 of 12 mutants caught"),
     ("results/paper/tables.md", "30 lie within 2 standard deviations", "30 of the 30 statistics compared"),
+]
+
+
+# Numbers in README prose: (results file, text that must occur in it, README file, text that must
+# occur in that README). As for CHECKS, the first fails when a regenerated result changes, the second
+# when the prose no longer quotes it.
+T7B_C01 = "| uninformed | 0.1 | 0.480 | 0.96 | 1.05 | 1.00 | 1.073 [1.049, 1.097] |"
+T7B_C1 = "| uninformed | 1 | 0.217 | 0.88 | 1.00 | 0.94 | 1.199 [1.145, 1.259] |"
+T7B_STRESS = "| stress (0.1, 0.9) | 0.1 | 1.047 | 1.27 | 1.03 | 1.15 |"
+SKEWC_C1 = ("| uninformed | 1 | skew first: SkewConst vs Symmetric (skew, without the time-varying "
+            "spread) | -16.7 [-19.9, -13.8] | 0.216 [0.204, 0.229] |")
+PROSE: list[tuple[str, str, str, str]] = [
+    # Top README, decomposition (Tables 7a and 7b): skew alone against A&S, the spread term with
+    # and without skew, and the skew shares of the two orders at c = 1.
+    (BT, SKEWC_C1, "README.md", "(0.216 against 0.217)"),
+    (BT, "| uninformed | 1 | spread first: SymTV vs Symmetric (spread term, without skew) | -5.3 "
+         "[-7.4, -3.2] | 0.837 [0.807, 0.867] |", "README.md", "without skew it lowers the ratio to 0.837"),
+    (BT, "| uninformed | 1 | then A&S vs SkewConst (spread term, with skew) | +1.8 [+1.4, +2.3] | "
+         "1.004 [0.971, 1.035] |", "README.md", "with skew it changes nothing measurable (1.004 [0.971, 1.035])"),
+    (BT, T7B_C1, "README.md", "(0.88 for the skew when the spread term is added first, 1.00 when "
+     "the skew is added first)"),
+    # backtest/README.md reading: skew shares (both orders and their average) and the interaction.
+    (BT, T7B_C01, "backtest/README.md", "0.96 spread first\n  and 1.05 skew first at $c = 0.1$"),
+    (BT, T7B_C1, "backtest/README.md", "0.88 and 1.00 at $c = 1$"),
+    (BT, T7B_C01, "backtest/README.md", "is 1.00 and 0.94"),
+    (BT, T7B_C1, "backtest/README.md", "is 1.00 and 0.94"),
+    (BT, T7B_STRESS, "backtest/README.md", "spread-first order (1.27)"),
+    (BT, T7B_STRESS, "backtest/README.md", "skew first it is\n  1.03"),
+    (BT, "| uninformed | 0.1 | A&S vs Symmetric (both) | -9.0 [-11.8, -6.2] | 0.480 [0.460, 0.503] |",
+     "backtest/README.md", "against A&S/Symmetric 0.480 [0.460, 0.503]"),
+    # Multiplicity: the number of pairs and intervals is the count make_tables.py writes.
+    (BT, "152 pairs with 1216 intervals in the comparison files, and 15 2 x 2 sets with 45 "
+         "interaction intervals", "backtest/README.md", "(152 pairs with 1216 intervals in the\n"
+     "comparison files, and 15 2 x 2 sets with 45 interaction intervals in the factorial files;"),
 ]
 
 
@@ -186,7 +226,20 @@ def main() -> int:
         if in_readme not in readme:
             print(f"README.md does not contain {in_readme!r} (checked against {path})")
             problems += 1
-    n_checks = len(CHECKS)
+    n_checks = len(CHECKS) + len(PROSE)
+    for path, in_file, readme_file, in_readme in PROSE:
+        for name in (path, readme_file):
+            if name not in texts:
+                try:
+                    texts[name] = (ROOT / name).read_text(encoding="utf-8")
+                except FileNotFoundError:
+                    texts[name] = ""
+        if in_file not in texts[path]:
+            print(f"{path}: {in_file!r} not found")
+            problems += 1
+        if in_readme not in texts[readme_file]:
+            print(f"{readme_file} does not contain {in_readme!r} (checked against {path})")
+            problems += 1
     for results_file, marker, readme_file in VERBATIM:
         n_checks += 1
         try:

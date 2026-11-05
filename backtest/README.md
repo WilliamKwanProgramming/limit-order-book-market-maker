@@ -127,8 +127,15 @@ $q + 1 > Q_{max}$, no ask if $q - 1 < -Q_{max}$; requote every 100 ms.
   the quoting times (the paper's benchmark, `paper::Strategy::Symmetric`); no inventory term.
 - **SymmetricTimeVarying** (`symtv`): quotes $s \mp \delta(t)/2$ with A&S's spread at the current
   time, $\delta(t) = \gamma\sigma^2(T-t) + \tfrac{2}{\gamma}\ln(1 + \gamma/k)$, and no inventory term
-  (`paper::Strategy::SymmetricTimeMatched`). It equals A&S whenever $q = 0$, so A&S against it
-  isolates the skew and it against SymmetricMatched isolates the time variation of the spread.
+  (`paper::Strategy::SymmetricTimeMatched`). It equals A&S whenever $q = 0$; A&S against it
+  adds the skew to the time-varying spread, and it against SymmetricMatched adds the time
+  variation of the spread without the skew.
+- **SkewConstSpread** (`skewc`, "SkewConst" in the tables): quotes $r \mp \bar s/2$ with A&S's
+  reservation price $r = s - q\gamma\sigma^2(T - t)$ and SymmetricMatched's constant spread
+  $\bar s$; it equals SymmetricMatched whenever $q = 0$. It against SymmetricMatched adds the skew
+  without the time-varying spread, and A&S against it adds the time variation of the spread to the
+  skew: the other order of the decomposition. Added after an independent review (see "Follow-up
+  after an independent review" below).
 - **NaiveTouch**: joins the best bid and best ask of the book without our orders; no inventory
   term.
 - **FixedOffset** (probe, calibration only): quotes $s \mp d$.
@@ -193,13 +200,15 @@ backtest/reproduce.sh build-backtest   # runs everything, then make_tables.py an
 ```
 
 `backtest_run` runs one market configuration for a list of strategies (`none`, `naive`,
-`as:<gamma>`, `sym:<gamma>`, `symtv:<gamma>`, `fixed:<ticks>`) on the same episode seeds and writes `run.txt`
-(command, seed, all parameters, wall time, load average), `summary.csv`, `diagnostics.csv`,
-`comparison.csv` and, with `--calibrate 1`, `calibration.csv` and `reach.csv`. `stress_test` does
+`as:<gamma>`, `sym:<gamma>`, `symtv:<gamma>`, `skewc:<gamma>`, `fixed:<ticks>`) on the same
+episode seeds and writes `run.txt` (command, seed, all parameters, wall time, load average),
+`summary.csv`, `diagnostics.csv`, `comparison.csv`, `factorial.csv` (when the list has `as`,
+`skewc`, `symtv` and `sym` at one $\gamma$: the interaction of the 2 x 2 decomposition) and, with
+`--calibrate 1`, `calibration.csv` and `reach.csv`. `stress_test` does
 the same for every cell of `--nu-grid` $\times$ `--nbr-grid` (plus $\nu = 0$ once). Both print
-`--help`. For sensitivity runs, `--k-scale X` and `--sigma-scale X` (default 1) give the as, sym
-and symtv arms $k$ = X $\times$ `--as-k` and $\sigma$ = X $\times$ `--as-sigma` while $\gamma$
-stays as written in the strategy list; `run.txt` records both scales. `backtest_run --calibrate 1
+`--help`. For sensitivity runs, `--k-scale X` and `--sigma-scale X` (default 1) give the as, sym,
+symtv and skewc arms $k$ = X $\times$ `--as-k` and $\sigma$ = X $\times$ `--as-sigma` while
+$\gamma$ stays as written in the strategy list; `run.txt` records both scales. `backtest_run --calibrate 1
 --calib-blocks N` also writes `calibration_blocks.csv`, $\hat\sigma$ and $\hat k$ on N
 consecutive blocks of episodes (each block's $k$ fit on the $\delta$ points of the full fit).
 `comparison.csv` has a column `replicates_kept`: the number of bootstrap replicates with a finite
@@ -209,8 +218,9 @@ last bit across C libraries, so results on another platform are only statistical
 `backtest/reproduce.sh` runs the calibration (seed 101), derives the $\gamma$ grid from
 $\hat\sigma$, runs the uninformed baseline (seed 202) and the stress grid (seed 303), the
 10,000-replicate interval check and the sensitivity runs (same seeds, `results/backtest/mc_check/`
-and `results/backtest/sensitivity/`), records
-commands, seeds, git commit and machine load in `results/backtest/MANIFEST.txt`, then calls
+and `results/backtest/sensitivity/`), records commands, seeds, git commit, whether the working
+tree was clean, the Python, numpy, pandas and matplotlib versions and the machine load in
+`results/backtest/MANIFEST.txt`, then calls
 `make_tables.py` (tables below and `results/backtest/tables.md`) and `plot.py` (figures).
 
 ## Further analyses (written before they were run)
@@ -310,6 +320,39 @@ stress cell (0.1, 0.9), where the skew raises the SD and the spread term lowers 
 as computed. The multiplicity count above is wrong for the sensitivity runs: they add 45 pairs
 (3 per cell and $c$, 5 settings, 3 cell-$c$ combinations), not 30.
 
+## Follow-up after an independent review (post hoc)
+
+The decomposition above was pre-specified with one order: the time-varying spread first (SymTV
+against Symmetric), the skew second (A&S against SymTV). An independent review of the published
+results ran the other order with a scratch arm and showed that the split depends on the order.
+The arm was then added to the repository, with tests, and every result regenerated. It is a post
+hoc addition, written after the order dependence was known, and it is reported whatever it shows;
+none of its rows was named in advance.
+
+- **Arm `skewc:<gamma>`** (SkewConstSpread): A&S's reservation price with Symmetric's constant
+  spread (Strategies above), appended after the existing arms in the baseline (all five $c$) and
+  the stress grid ($c = 0.1$, every cell), so the existing arms' output is unchanged (checked:
+  every earlier row of `summary.csv`, `stress_summary.csv`, `comparison.csv` and
+  `stress_comparison.csv` is byte-identical to the previous run).
+- **2 x 2 design.** A&S (skew and time-varying spread), SkewConst (skew only), SymTV
+  (time-varying spread only), Symmetric (neither). Two orders: spread first (SymTV/Symmetric, then
+  A&S/SymTV) and skew first (SkewConst/Symmetric, then A&S/SkewConst). New pairs: A&S against
+  SkewConst and SkewConst against Symmetric, same statistics and bootstrap as the other pairs.
+- **Skew share** for each order: spread first $\ln(\mathrm{SD}_{A\&S}/\mathrm{SD}_{SymTV}) /
+  \ln(\mathrm{SD}_{A\&S}/\mathrm{SD}_{Sym})$, skew first $\ln(\mathrm{SD}_{SkewC}/\mathrm{SD}_{Sym}) /
+  \ln(\mathrm{SD}_{A\&S}/\mathrm{SD}_{Sym})$, and their average (the symmetric two-way, or Shapley,
+  share). Point estimates. A single share is order dependent whenever the two terms interact.
+- **Interaction** $(\mathrm{SD}_{A\&S}/\mathrm{SD}_{SkewC}) / (\mathrm{SD}_{SymTV}/\mathrm{SD}_{Sym})$
+  for the SD of PnL and of $q_T$, and $(\bar x_{A\&S} - \bar x_{SkewC}) - (\bar x_{SymTV} -
+  \bar x_{Sym})$ for mean PnL: the effect of the spread term with the skew present relative to its
+  effect without it (1, or 0 for the mean, if the effects do not interact). Interval: paired
+  percentile bootstrap, 1000 replicates, each drawing one set of episode indices for all four arms
+  (`factorial.csv`, `stress_factorial.csv`).
+- Where SymTV and Symmetric quote identically after tick rounding, the spread-first share is 1 by
+  construction and is shown as "n/a (SymTV = Symmetric)".
+- Not extended: the sensitivity runs (Table 9) and the 10,000-replicate check (Table 10) keep
+  their pre-specified arms; adding SkewConst there would add about a third to their run time.
+
 ## Results
 
 <!-- tables:begin -->
@@ -359,18 +402,23 @@ as computed. The multiplicity count above is wrong for the sensitivity runs: the
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | NaiveTouch | - | 62.9 ± 3.4 | 76.6 | 0.82 | 5.90 | 4.45 | 242 | 0.209 | 0.61 | 0.57 | +0.34 | +0.31 | +0.28 | 0.88 | 0.28 |
 | A&S, c=0.01 | 7.29e-05 | 38.7 ± 3.3 | 74.2 | 0.52 | 6.04 | 3.83 | 76 | 0.065 | 1.43 | 1.27 | +0.68 | +0.65 | +0.62 | 1.13 | 0.64 |
+| SkewConst, c=0.01 | 7.29e-05 | 38.9 ± 3.3 | 74.7 | 0.52 | 6.04 | 3.85 | 76 | 0.065 | 1.43 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.64 |
 | SymTV, c=0.01 | 7.29e-05 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | Symmetric, c=0.01 | 7.29e-05 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.03 | 0.000219 | 35.5 ± 2.4 | 55.2 | 0.64 | 5.38 | 2.73 | 73 | 0.061 | 1.45 | 1.30 | +0.68 | +0.65 | +0.61 | 1.12 | 0.68 |
+| SkewConst, c=0.03 | 0.000219 | 35.6 ± 2.4 | 55.0 | 0.65 | 5.32 | 2.73 | 73 | 0.061 | 1.45 | 1.30 | +0.68 | +0.65 | +0.61 | 1.12 | 0.68 |
 | SymTV, c=0.03 | 0.000219 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | Symmetric, c=0.03 | 0.000219 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.1 | 0.000729 | 31.4 ± 1.6 | 37.4 | 0.84 | 4.20 | 1.75 | 69 | 0.058 | 1.48 | 1.32 | +0.68 | +0.64 | +0.58 | 1.11 | 0.74 |
+| SkewConst, c=0.1 | 0.000729 | 30.8 ± 1.6 | 36.0 | 0.86 | 3.72 | 1.69 | 70 | 0.059 | 1.48 | 1.31 | +0.68 | +0.63 | +0.58 | 1.11 | 0.73 |
 | SymTV, c=0.1 | 0.000729 | 39.2 ± 3.3 | 75.5 | 0.52 | 6.11 | 3.89 | 73 | 0.062 | 1.45 | 1.29 | +0.68 | +0.66 | +0.63 | 1.13 | 0.66 |
 | Symmetric, c=0.1 | 0.000729 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.3 | 0.00219 | 27.1 ± 1.1 | 24.1 | 1.12 | 3.19 | 1.00 | 63 | 0.052 | 1.60 | 1.34 | +0.67 | +0.61 | +0.52 | 1.10 | 0.82 |
+| SkewConst, c=0.3 | 0.00219 | 25.5 ± 1.0 | 23.6 | 1.08 | 2.85 | 0.96 | 61 | 0.051 | 1.60 | 1.35 | +0.67 | +0.59 | +0.51 | 1.09 | 0.84 |
 | SymTV, c=0.3 | 0.00219 | 35.9 ± 3.0 | 69.0 | 0.52 | 5.83 | 3.53 | 59 | 0.050 | 1.53 | 1.43 | +0.71 | +0.69 | +0.65 | 1.10 | 0.78 |
 | Symmetric, c=0.3 | 0.00219 | 33.4 ± 3.0 | 69.0 | 0.48 | 5.69 | 3.51 | 52 | 0.044 | 1.58 | 1.53 | +0.73 | +0.71 | +0.67 | 1.08 | 0.86 |
 | A&S, c=1 | 0.00729 | 18.5 ± 0.7 | 14.9 | 1.24 | 2.24 | 0.42 | 52 | 0.043 | 1.95 | 1.30 | +0.63 | +0.50 | +0.40 | 1.10 | 0.90 |
+| SkewConst, c=1 | 0.00729 | 16.6 ± 0.7 | 14.9 | 1.12 | 1.79 | 0.45 | 64 | 0.053 | 1.72 | 1.17 | +0.55 | +0.40 | +0.29 | 1.09 | 0.88 |
 | SymTV, c=1 | 0.00729 | 28.0 ± 2.5 | 57.7 | 0.49 | 5.51 | 2.74 | 41 | 0.035 | 1.92 | 1.63 | +0.80 | +0.77 | +0.74 | 1.11 | 0.89 |
 | Symmetric, c=1 | 0.00729 | 33.4 ± 3.0 | 69.0 | 0.48 | 5.69 | 3.51 | 52 | 0.044 | 1.58 | 1.53 | +0.73 | +0.71 | +0.67 | 1.08 | 0.86 |
 
@@ -395,42 +443,52 @@ as computed. The multiplicity count above is wrong for the sensitivity runs: the
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | (0, -) | NaiveTouch | 63.5 ± 3.4 | 77.3 | 0.82 | 5.77 | 4.48 | 243 | 0.210 | 0.57 | +0.32 | +0.29 | 0.88 | 0.28 |
 | (0, -) | A&S, c=0.1 | 31.4 ± 1.6 | 37.4 | 0.84 | 4.08 | 1.75 | 70 | 0.058 | 1.32 | +0.64 | +0.59 | 1.11 | 0.73 |
+| (0, -) | SkewConst, c=0.1 | 30.5 ± 1.6 | 36.0 | 0.85 | 3.62 | 1.69 | 70 | 0.059 | 1.31 | +0.64 | +0.58 | 1.11 | 0.73 |
 | (0, -) | SymTV, c=0.1 | 40.0 ± 3.4 | 76.5 | 0.52 | 5.89 | 3.83 | 73 | 0.063 | 1.29 | +0.66 | +0.64 | 1.13 | 0.65 |
 | (0, -) | Symmetric, c=0.1 | 42.1 ± 3.4 | 78.6 | 0.54 | 5.93 | 4.04 | 77 | 0.066 | 1.26 | +0.66 | +0.63 | 1.13 | 0.63 |
 | (0.01, 0.5) | NaiveTouch | 61.2 ± 3.5 | 79.6 | 0.77 | 5.82 | 4.50 | 246 | 0.213 | 0.57 | +0.31 | +0.28 | 0.89 | 0.29 |
 | (0.01, 0.5) | A&S, c=0.1 | 30.4 ± 1.7 | 39.1 | 0.78 | 4.16 | 1.77 | 72 | 0.060 | 1.32 | +0.63 | +0.57 | 1.12 | 0.75 |
+| (0.01, 0.5) | SkewConst, c=0.1 | 29.5 ± 1.7 | 38.0 | 0.78 | 3.71 | 1.71 | 73 | 0.061 | 1.31 | +0.62 | +0.56 | 1.12 | 0.75 |
 | (0.01, 0.5) | SymTV, c=0.1 | 38.7 ± 3.5 | 80.3 | 0.48 | 5.89 | 3.90 | 76 | 0.065 | 1.28 | +0.65 | +0.62 | 1.15 | 0.67 |
 | (0.01, 0.5) | Symmetric, c=0.1 | 40.7 ± 3.6 | 81.7 | 0.50 | 5.93 | 4.10 | 79 | 0.068 | 1.26 | +0.65 | +0.61 | 1.15 | 0.64 |
 | (0.01, 0.75) | NaiveTouch | 45.1 ± 4.3 | 98.4 | 0.46 | 5.84 | 4.57 | 248 | 0.215 | 0.57 | +0.29 | +0.22 | 0.90 | 0.35 |
 | (0.01, 0.75) | A&S, c=0.1 | 13.7 ± 3.0 | 69.4 | 0.20 | 4.44 | 1.86 | 76 | 0.063 | 1.31 | +0.57 | +0.34 | 1.18 | 0.97 |
+| (0.01, 0.75) | SkewConst, c=0.1 | 12.8 ± 3.0 | 68.6 | 0.19 | 3.98 | 1.80 | 76 | 0.064 | 1.31 | +0.57 | +0.34 | 1.17 | 0.97 |
 | (0.01, 0.75) | SymTV, c=0.1 | 22.9 ± 4.5 | 103.2 | 0.22 | 6.06 | 4.11 | 79 | 0.068 | 1.28 | +0.60 | +0.42 | 1.21 | 0.86 |
 | (0.01, 0.75) | Symmetric, c=0.1 | 24.8 ± 4.6 | 104.9 | 0.24 | 6.10 | 4.30 | 82 | 0.071 | 1.25 | +0.59 | +0.42 | 1.21 | 0.83 |
 | (0.01, 0.9) | NaiveTouch | -41.1 ± 9.9 | 225.7 | -0.18 | 6.07 | 4.77 | 251 | 0.218 | 0.59 | +0.26 | -0.06 | 0.92 | 0.65 |
 | (0.01, 0.9) | A&S, c=0.1 | -95.7 ± 10.7 | 243.9 | -0.39 | 4.97 | 2.10 | 82 | 0.069 | 1.31 | +0.42 | -0.75 | 1.29 | 2.06 |
+| (0.01, 0.9) | SkewConst, c=0.1 | -96.1 ± 10.7 | 244.0 | -0.39 | 4.58 | 2.04 | 83 | 0.070 | 1.30 | +0.42 | -0.73 | 1.29 | 2.04 |
 | (0.01, 0.9) | SymTV, c=0.1 | -76.9 ± 10.7 | 243.4 | -0.32 | 6.33 | 4.49 | 83 | 0.073 | 1.27 | +0.45 | -0.55 | 1.34 | 1.82 |
 | (0.01, 0.9) | Symmetric, c=0.1 | -76.6 ± 10.9 | 247.6 | -0.31 | 6.34 | 4.65 | 87 | 0.077 | 1.24 | +0.45 | -0.51 | 1.34 | 1.75 |
 | (0.03, 0.5) | NaiveTouch | 58.8 ± 3.7 | 85.5 | 0.69 | 5.80 | 4.54 | 253 | 0.218 | 0.57 | +0.30 | +0.27 | 0.89 | 0.31 |
 | (0.03, 0.5) | A&S, c=0.1 | 29.7 ± 1.9 | 42.4 | 0.70 | 4.36 | 1.81 | 77 | 0.065 | 1.31 | +0.61 | +0.53 | 1.16 | 0.79 |
+| (0.03, 0.5) | SkewConst, c=0.1 | 28.6 ± 1.8 | 41.1 | 0.70 | 3.86 | 1.75 | 78 | 0.065 | 1.30 | +0.60 | +0.52 | 1.15 | 0.79 |
 | (0.03, 0.5) | SymTV, c=0.1 | 37.4 ± 3.8 | 86.5 | 0.43 | 6.01 | 4.07 | 81 | 0.070 | 1.28 | +0.63 | +0.58 | 1.18 | 0.70 |
 | (0.03, 0.5) | Symmetric, c=0.1 | 39.4 ± 3.9 | 88.2 | 0.45 | 6.05 | 4.24 | 85 | 0.073 | 1.25 | +0.63 | +0.58 | 1.19 | 0.67 |
 | (0.03, 0.75) | NaiveTouch | 8.4 ± 5.8 | 133.3 | 0.06 | 6.01 | 4.76 | 259 | 0.225 | 0.59 | +0.25 | +0.09 | 0.92 | 0.50 |
 | (0.03, 0.75) | A&S, c=0.1 | -24.9 ± 4.9 | 111.9 | -0.22 | 5.03 | 2.09 | 89 | 0.074 | 1.31 | +0.45 | -0.07 | 1.31 | 1.38 |
+| (0.03, 0.75) | SkewConst, c=0.1 | -25.9 ± 4.9 | 111.4 | -0.23 | 4.62 | 2.04 | 89 | 0.075 | 1.30 | +0.45 | -0.07 | 1.31 | 1.37 |
 | (0.03, 0.75) | SymTV, c=0.1 | -14.1 ± 6.0 | 137.3 | -0.10 | 6.36 | 4.52 | 90 | 0.079 | 1.27 | +0.48 | +0.07 | 1.36 | 1.20 |
 | (0.03, 0.75) | Symmetric, c=0.1 | -13.8 ± 6.1 | 140.2 | -0.10 | 6.35 | 4.68 | 95 | 0.083 | 1.24 | +0.47 | +0.06 | 1.37 | 1.17 |
 | (0.03, 0.9) | NaiveTouch | -213.7 ± 14.4 | 329.6 | -0.65 | 6.21 | 5.15 | 267 | 0.235 | 0.63 | +0.15 | -0.61 | 0.98 | 1.23 |
 | (0.03, 0.9) | A&S, c=0.1 | -317.1 ± 17.0 | 389.0 | -0.82 | 5.91 | 2.61 | 106 | 0.090 | 1.30 | +0.14 | -2.28 | 1.56 | 3.58 |
+| (0.03, 0.9) | SkewConst, c=0.1 | -317.9 ± 17.1 | 389.0 | -0.82 | 5.58 | 2.57 | 107 | 0.091 | 1.30 | +0.14 | -2.26 | 1.55 | 3.56 |
 | (0.03, 0.9) | SymTV, c=0.1 | -269.8 ± 16.1 | 366.4 | -0.74 | 6.85 | 5.26 | 103 | 0.093 | 1.26 | +0.18 | -1.91 | 1.64 | 3.17 |
 | (0.03, 0.9) | Symmetric, c=0.1 | -276.2 ± 16.2 | 369.7 | -0.75 | 6.86 | 5.40 | 108 | 0.097 | 1.22 | +0.18 | -1.87 | 1.64 | 3.09 |
 | (0.1, 0.5) | NaiveTouch | 44.4 ± 4.5 | 102.0 | 0.44 | 5.87 | 4.70 | 275 | 0.239 | 0.59 | +0.27 | +0.21 | 0.91 | 0.38 |
 | (0.1, 0.5) | A&S, c=0.1 | 24.5 ± 2.5 | 56.7 | 0.43 | 4.68 | 1.93 | 96 | 0.081 | 1.30 | +0.55 | +0.42 | 1.24 | 0.88 |
+| (0.1, 0.5) | SkewConst, c=0.1 | 23.0 ± 2.4 | 54.9 | 0.42 | 4.15 | 1.86 | 97 | 0.081 | 1.30 | +0.54 | +0.41 | 1.23 | 0.88 |
 | (0.1, 0.5) | SymTV, c=0.1 | 35.1 ± 4.7 | 106.7 | 0.33 | 6.11 | 4.33 | 101 | 0.087 | 1.26 | +0.57 | +0.49 | 1.28 | 0.78 |
 | (0.1, 0.5) | Symmetric, c=0.1 | 35.9 ± 4.7 | 107.9 | 0.33 | 6.08 | 4.50 | 106 | 0.092 | 1.23 | +0.56 | +0.48 | 1.28 | 0.75 |
 | (0.1, 0.75) | NaiveTouch | -108.6 ± 9.1 | 207.3 | -0.52 | 6.17 | 5.09 | 296 | 0.261 | 0.64 | +0.13 | -0.26 | 0.99 | 0.89 |
 | (0.1, 0.75) | A&S, c=0.1 | -155.0 ± 8.7 | 198.5 | -0.78 | 5.91 | 2.60 | 134 | 0.114 | 1.29 | +0.21 | -0.83 | 1.59 | 2.12 |
+| (0.1, 0.75) | SkewConst, c=0.1 | -157.0 ± 8.7 | 198.3 | -0.79 | 5.54 | 2.55 | 135 | 0.114 | 1.29 | +0.21 | -0.83 | 1.59 | 2.12 |
 | (0.1, 0.75) | SymTV, c=0.1 | -129.0 ± 10.2 | 233.1 | -0.55 | 6.61 | 5.18 | 133 | 0.119 | 1.25 | +0.25 | -0.57 | 1.68 | 1.82 |
 | (0.1, 0.75) | Symmetric, c=0.1 | -136.6 ± 10.3 | 235.8 | -0.58 | 6.61 | 5.34 | 139 | 0.125 | 1.21 | +0.24 | -0.57 | 1.69 | 1.78 |
 | (0.1, 0.9) | NaiveTouch | -765.6 ± 24.9 | 568.4 | -1.35 | 6.73 | 5.70 | 325 | 0.296 | 0.75 | -0.10 | -1.90 | 1.15 | 2.65 |
 | (0.1, 0.9) | A&S, c=0.1 | -1046.6 ± 29.1 | 663.0 | -1.58 | 7.03 | 3.63 | 194 | 0.171 | 1.29 | -0.22 | -4.16 | 2.02 | 5.45 |
+| (0.1, 0.9) | SkewConst, c=0.1 | -1050.3 ± 29.1 | 664.0 | -1.58 | 6.78 | 3.60 | 196 | 0.172 | 1.29 | -0.22 | -4.15 | 2.01 | 5.44 |
 | (0.1, 0.9) | SymTV, c=0.1 | -899.9 ± 27.4 | 625.7 | -1.44 | 7.25 | 6.11 | 180 | 0.172 | 1.24 | -0.21 | -3.75 | 2.18 | 4.99 |
 | (0.1, 0.9) | Symmetric, c=0.1 | -920.9 ± 27.8 | 633.5 | -1.45 | 7.25 | 6.19 | 187 | 0.179 | 1.20 | -0.21 | -3.69 | 2.19 | 4.89 |
 
@@ -459,38 +517,57 @@ as computed. The multiplicity count above is wrong for the sensitivity runs: the
 | (0.1, 0.9) | A&S, c=0.1 | Symmetric, c=0.1 | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] | 0.970 [0.962, 0.977] | -2.56 [-2.60, -2.52] | -0.125 [-0.149, -0.101] | -0.47 [-0.51, -0.42] |
 | (0.1, 0.9) | A&S, c=0.1 | NaiveTouch | -281.0 [-293.4, -268.1] | 1.167 [1.142, 1.190] | 1.044 [1.028, 1.059] | -2.07 [-2.10, -2.03] | -0.231 [-0.264, -0.198] | -2.26 [-2.32, -2.20] |
 
-**Table 7. Inventory skew and spread term, separated** (simulated; same runs and bootstrap as Tables 4 and 6). SymTV quotes the mid ∓ half of A&S's spread at the current time with no skew, so A&S vs SymTV isolates the inventory skew and SymTV vs Symmetric the time-varying spread term. The SD ratios multiply exactly: the product row equals the A&S vs Symmetric row. Skew share = ln(SD PnL ratio A&S/SymTV) / ln(SD PnL ratio A&S/Symmetric), a point estimate with no interval.
+**Table 7a. Inventory skew and time-varying spread term: 2 x 2 design, both orders** (simulated; same runs and bootstrap as Tables 4 and 6). Four arms at the same γ: A&S (skew and time-varying spread), SkewConst (A&S's skew, Symmetric's constant spread), SymTV (A&S's time-varying spread, no skew) and Symmetric (neither). Spread first adds the time-varying spread without the skew (SymTV vs Symmetric), then the skew (A&S vs SymTV); skew first adds the skew without the time-varying spread (SkewConst vs Symmetric), then the spread term (A&S vs SkewConst). The spread-first order was pre-specified; the SkewConst arm and the skew-first order were added after an independent review (post hoc). Within each order the two SD ratios multiply to the A&S vs Symmetric ratio; that is an algebraic identity (a/c = a/b × b/c), checked by make_tables.py only to confirm that the pairs use the same SDs, not evidence about the decomposition.
 
-| Run | c | A vs B | Mean PnL A − B (USD) | SD PnL A / B | SD q_T A / B | Mean/SD A − B | Skew share of ln(SD PnL ratio) |
-|---|---|---|---|---|---|---|---|
-| uninformed | 0.01 | A&S vs Symmetric (both effects) | -1.6 [-2.3, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.007, +0.015] | - |
-| uninformed | 0.01 | A&S vs SymTV (skew) | -1.6 [-2.4, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.008, +0.015] | - |
-| uninformed | 0.01 | SymTV vs Symmetric (spread term) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | - |
-| uninformed | 0.01 | product of the two factors | - | 0.952 | 0.992 | - | 1.00 |
-| uninformed | 0.03 | A&S vs Symmetric (both effects) | -4.9 [-6.8, -2.9] | 0.709 [0.686, 0.733] | 0.883 [0.868, 0.896] | +0.124 [+0.087, +0.163] | - |
-| uninformed | 0.03 | A&S vs SymTV (skew) | -4.9 [-6.9, -3.1] | 0.709 [0.684, 0.731] | 0.883 [0.868, 0.897] | +0.124 [+0.087, +0.160] | - |
-| uninformed | 0.03 | SymTV vs Symmetric (spread term) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | - |
-| uninformed | 0.03 | product of the two factors | - | 0.709 | 0.883 | - | 1.00 |
-| uninformed | 0.1 | A&S vs Symmetric (both effects) | -9.0 [-11.8, -6.2] | 0.480 [0.460, 0.503] | 0.690 [0.673, 0.708] | +0.321 [+0.261, +0.379] | - |
-| uninformed | 0.1 | A&S vs SymTV (skew) | -7.9 [-10.5, -5.1] | 0.495 [0.472, 0.519] | 0.688 [0.670, 0.705] | +0.319 [+0.262, +0.381] | - |
-| uninformed | 0.1 | SymTV vs Symmetric (spread term) | -1.2 [-2.5, +0.1] | 0.968 [0.950, 0.987] | 1.003 [0.995, 1.010] | +0.002 [-0.021, +0.022] | - |
-| uninformed | 0.1 | product of the two factors | - | 0.480 | 0.690 | - | 0.96 |
-| uninformed | 0.3 | A&S vs Symmetric (both effects) | -6.3 [-8.9, -3.5] | 0.350 [0.332, 0.370] | 0.561 [0.543, 0.580] | +0.638 [+0.559, +0.713] | - |
-| uninformed | 0.3 | A&S vs SymTV (skew) | -8.8 [-11.7, -5.9] | 0.350 [0.332, 0.367] | 0.547 [0.531, 0.564] | +0.601 [+0.528, +0.679] | - |
-| uninformed | 0.3 | SymTV vs Symmetric (spread term) | +2.5 [+1.7, +3.4] | 1.001 [0.985, 1.016] | 1.026 [1.008, 1.042] | +0.037 [+0.021, +0.051] | - |
-| uninformed | 0.3 | product of the two factors | - | 0.350 | 0.561 | - | 1.00 |
-| uninformed | 1 | A&S vs Symmetric (both effects) | -14.9 [-18.0, -11.8] | 0.217 [0.205, 0.229] | 0.394 [0.381, 0.408] | +0.752 [+0.662, +0.832] | - |
-| uninformed | 1 | A&S vs SymTV (skew) | -9.6 [-11.9, -7.0] | 0.259 [0.245, 0.272] | 0.406 [0.392, 0.420] | +0.751 [+0.674, +0.835] | - |
-| uninformed | 1 | SymTV vs Symmetric (spread term) | -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] | 0.969 [0.951, 0.987] | +0.002 [-0.039, +0.042] | - |
-| uninformed | 1 | product of the two factors | - | 0.217 | 0.394 | - | 0.88 |
-| stress (0, -) | 0.1 | A&S vs Symmetric (both effects) | -10.7 [-13.5, -8.0] | 0.476 [0.456, 0.497] | 0.688 [0.671, 0.707] | +0.304 [+0.245, +0.358] | - |
-| stress (0, -) | 0.1 | A&S vs SymTV (skew) | -8.6 [-11.1, -5.9] | 0.489 [0.467, 0.510] | 0.693 [0.674, 0.711] | +0.318 [+0.263, +0.373] | - |
-| stress (0, -) | 0.1 | SymTV vs Symmetric (spread term) | -2.2 [-3.7, -0.7] | 0.974 [0.955, 0.996] | 0.993 [0.984, 1.003] | -0.014 [-0.039, +0.009] | - |
-| stress (0, -) | 0.1 | product of the two factors | - | 0.476 | 0.688 | - | 0.96 |
-| stress (0.1, 0.9) | 0.1 | A&S vs Symmetric (both effects) | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] | 0.970 [0.962, 0.977] | -0.125 [-0.149, -0.101] | - |
-| stress (0.1, 0.9) | 0.1 | A&S vs SymTV (skew) | -146.8 [-156.9, -136.9] | 1.060 [1.044, 1.076] | 0.970 [0.962, 0.977] | -0.140 [-0.164, -0.116] | - |
-| stress (0.1, 0.9) | 0.1 | SymTV vs Symmetric (spread term) | +21.0 [+18.2, +24.1] | 0.988 [0.982, 0.993] | 1.000 [0.999, 1.001] | +0.015 [+0.007, +0.024] | - |
-| stress (0.1, 0.9) | 0.1 | product of the two factors | - | 1.047 | 0.970 | - | 1.27 |
+| Run | c | A vs B | Mean PnL A − B (USD) | SD PnL A / B | SD q_T A / B | Mean/SD A − B |
+|---|---|---|---|---|---|---|
+| uninformed | 0.01 | A&S vs Symmetric (both) | -1.6 [-2.3, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.007, +0.015] |
+| uninformed | 0.01 | spread first: SymTV vs Symmetric (spread term, without skew) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
+| uninformed | 0.01 | then A&S vs SymTV (skew, with the time-varying spread) | -1.6 [-2.4, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.008, +0.015] |
+| uninformed | 0.01 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -1.5 [-2.2, -0.8] | 0.958 [0.947, 0.968] | 0.992 [0.988, 0.996] | +0.003 [-0.008, +0.015] |
+| uninformed | 0.01 | then A&S vs SkewConst (spread term, with skew) | -0.1 [-0.3, +0.1] | 0.994 [0.991, 0.997] | 1.000 [0.999, 1.001] | +0.001 [-0.002, +0.004] |
+| uninformed | 0.03 | A&S vs Symmetric (both) | -4.9 [-6.8, -2.9] | 0.709 [0.686, 0.733] | 0.883 [0.868, 0.896] | +0.124 [+0.087, +0.163] |
+| uninformed | 0.03 | spread first: SymTV vs Symmetric (spread term, without skew) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
+| uninformed | 0.03 | then A&S vs SymTV (skew, with the time-varying spread) | -4.9 [-6.9, -3.1] | 0.709 [0.684, 0.731] | 0.883 [0.868, 0.897] | +0.124 [+0.087, +0.160] |
+| uninformed | 0.03 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -4.8 [-6.8, -2.9] | 0.705 [0.682, 0.727] | 0.873 [0.859, 0.887] | +0.129 [+0.091, +0.169] |
+| uninformed | 0.03 | then A&S vs SkewConst (spread term, with skew) | -0.1 [-0.5, +0.3] | 1.005 [0.997, 1.014] | 1.011 [1.007, 1.015] | -0.005 [-0.016, +0.005] |
+| uninformed | 0.1 | A&S vs Symmetric (both) | -9.0 [-11.8, -6.2] | 0.480 [0.460, 0.503] | 0.690 [0.673, 0.708] | +0.321 [+0.261, +0.379] |
+| uninformed | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -1.2 [-2.5, +0.1] | 0.968 [0.950, 0.987] | 1.003 [0.995, 1.010] | +0.002 [-0.021, +0.022] |
+| uninformed | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -7.9 [-10.5, -5.1] | 0.495 [0.472, 0.519] | 0.688 [0.670, 0.705] | +0.319 [+0.262, +0.381] |
+| uninformed | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -9.5 [-12.3, -6.7] | 0.462 [0.440, 0.483] | 0.611 [0.594, 0.627] | +0.339 [+0.280, +0.404] |
+| uninformed | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.5 [+0.1, +1.0] | 1.038 [1.025, 1.054] | 1.129 [1.116, 1.143] | -0.017 [-0.036, -0.001] |
+| uninformed | 0.3 | A&S vs Symmetric (both) | -6.3 [-8.9, -3.5] | 0.350 [0.332, 0.370] | 0.561 [0.543, 0.580] | +0.638 [+0.559, +0.713] |
+| uninformed | 0.3 | spread first: SymTV vs Symmetric (spread term, without skew) | +2.5 [+1.7, +3.4] | 1.001 [0.985, 1.016] | 1.026 [1.008, 1.042] | +0.037 [+0.021, +0.051] |
+| uninformed | 0.3 | then A&S vs SymTV (skew, with the time-varying spread) | -8.8 [-11.7, -5.9] | 0.350 [0.332, 0.367] | 0.547 [0.531, 0.564] | +0.601 [+0.528, +0.679] |
+| uninformed | 0.3 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -7.8 [-10.6, -4.9] | 0.342 [0.324, 0.361] | 0.501 [0.485, 0.517] | +0.598 [+0.526, +0.675] |
+| uninformed | 0.3 | then A&S vs SkewConst (spread term, with skew) | +1.5 [+1.1, +1.9] | 1.022 [0.999, 1.044] | 1.120 [1.095, 1.144] | +0.040 [+0.010, +0.072] |
+| uninformed | 1 | A&S vs Symmetric (both) | -14.9 [-18.0, -11.8] | 0.217 [0.205, 0.229] | 0.394 [0.381, 0.408] | +0.752 [+0.662, +0.832] |
+| uninformed | 1 | spread first: SymTV vs Symmetric (spread term, without skew) | -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] | 0.969 [0.951, 0.987] | +0.002 [-0.039, +0.042] |
+| uninformed | 1 | then A&S vs SymTV (skew, with the time-varying spread) | -9.6 [-11.9, -7.0] | 0.259 [0.245, 0.272] | 0.406 [0.392, 0.420] | +0.751 [+0.674, +0.835] |
+| uninformed | 1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -16.7 [-19.9, -13.8] | 0.216 [0.204, 0.229] | 0.315 [0.304, 0.326] | +0.633 [+0.554, +0.708] |
+| uninformed | 1 | then A&S vs SkewConst (spread term, with skew) | +1.8 [+1.4, +2.3] | 1.004 [0.971, 1.035] | 1.251 [1.215, 1.286] | +0.119 [+0.068, +0.172] |
+| stress (0, -) | 0.1 | A&S vs Symmetric (both) | -10.7 [-13.5, -8.0] | 0.476 [0.456, 0.497] | 0.688 [0.671, 0.707] | +0.304 [+0.245, +0.358] |
+| stress (0, -) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -2.2 [-3.7, -0.7] | 0.974 [0.955, 0.996] | 0.993 [0.984, 1.003] | -0.014 [-0.039, +0.009] |
+| stress (0, -) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -8.6 [-11.1, -5.9] | 0.489 [0.467, 0.510] | 0.693 [0.674, 0.711] | +0.318 [+0.263, +0.373] |
+| stress (0, -) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -11.6 [-14.6, -8.7] | 0.458 [0.439, 0.479] | 0.609 [0.593, 0.626] | +0.312 [+0.255, +0.372] |
+| stress (0, -) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.9 [+0.5, +1.3] | 1.039 [1.024, 1.053] | 1.129 [1.114, 1.142] | -0.008 [-0.027, +0.010] |
+| stress (0.1, 0.9) | 0.1 | A&S vs Symmetric (both) | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] | 0.970 [0.962, 0.977] | -0.125 [-0.149, -0.101] |
+| stress (0.1, 0.9) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | +21.0 [+18.2, +24.1] | 0.988 [0.982, 0.993] | 1.000 [0.999, 1.001] | +0.015 [+0.007, +0.024] |
+| stress (0.1, 0.9) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -146.8 [-156.9, -136.9] | 1.060 [1.044, 1.076] | 0.970 [0.962, 0.977] | -0.140 [-0.164, -0.116] |
+| stress (0.1, 0.9) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -129.4 [-139.2, -120.4] | 1.048 [1.032, 1.065] | 0.935 [0.927, 0.943] | -0.128 [-0.153, -0.104] |
+| stress (0.1, 0.9) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +3.6 [+1.8, +5.2] | 0.999 [0.996, 1.001] | 1.037 [1.032, 1.043] | +0.003 [-0.002, +0.007] |
+
+**Table 7b. Skew shares and interaction** (same cells). Skew share of ln(SD PnL ratio A&S/Symmetric): spread first ln(A&S/SymTV) / ln(A&S/Symmetric), skew first ln(SkewConst/Symmetric) / ln(A&S/Symmetric), and their average (the two-way Shapley share); point estimates, no interval. A share depends on the order whenever the interaction is not 1. Interaction: paired percentile bootstrap (1000 replicates) with the same resampled episodes for all four arms; 1 (0 for the mean) means the spread term has the same effect with and without the skew. Where SymTV and Symmetric quote identically (the time variation never crosses a tick), the spread-first share and the average are shown as n/a.
+
+| Run | c | SD PnL A&S / Symmetric | Skew share, spread first | Skew share, skew first | Skew share, average of the two orders (Shapley) | Interaction, SD PnL: (A&S/SkewConst) / (SymTV/Symmetric) | Interaction, SD q_T | Interaction, mean PnL (USD): (A&S − SkewConst) − (SymTV − Symmetric) |
+|---|---|---|---|---|---|---|---|---|
+| uninformed | 0.01 | 0.952 | n/a (SymTV = Symmetric) | 0.88 | n/a (SymTV = Symmetric) | 0.994 [0.991, 0.997] | 1.000 [0.999, 1.001] | -0.1 [-0.3, +0.1] |
+| uninformed | 0.03 | 0.709 | n/a (SymTV = Symmetric) | 1.02 | n/a (SymTV = Symmetric) | 1.005 [0.997, 1.014] | 1.011 [1.007, 1.015] | -0.1 [-0.5, +0.3] |
+| uninformed | 0.1 | 0.480 | 0.96 | 1.05 | 1.00 | 1.073 [1.049, 1.097] | 1.126 [1.110, 1.144] | +1.7 [+0.4, +3.0] |
+| uninformed | 0.3 | 0.350 | 1.00 | 1.02 | 1.01 | 1.021 [0.997, 1.048] | 1.092 [1.066, 1.118] | -1.0 [-1.9, -0.2] |
+| uninformed | 1 | 0.217 | 0.88 | 1.00 | 0.94 | 1.199 [1.145, 1.259] | 1.290 [1.250, 1.331] | +7.2 [+5.2, +9.3] |
+| stress (0, -) | 0.1 | 0.476 | 0.96 | 1.05 | 1.01 | 1.067 [1.042, 1.093] | 1.137 [1.120, 1.155] | +3.1 [+1.6, +4.6] |
+| stress (0.1, 0.9) | 0.1 | 1.047 | 1.27 | 1.03 | 1.15 | 1.011 [1.005, 1.017] | 1.037 [1.032, 1.043] | -17.4 [-20.7, -14.1] |
 
 **Table 8. Sampling spread of the A&S inputs** (simulated; the calibration run of Table 2a cut into consecutive blocks; each block's k fit uses the δ points of the full fit). Blocks are independent episodes, so SD/√(blocks) is a standard error of the full-run estimate. It measures sampling error only, not the misfit of the exponential at the touch.
 
@@ -514,7 +591,7 @@ as computed. The multiplicity count above is wrong for the sensitivity runs: the
 
 **Table 9. Sensitivity to the estimated k and σ** (simulated; 1000 episodes per cell and setting, the first 1000 episodes of the baseline (seed 202) and of the stress run (seed 303), so every setting sees the same episodes). The as, symtv and sym arms get k and σ scaled as shown; γ stays at the value chosen from the unperturbed σ̂, so a perturbation moves both the skew and the spread. Intervals: paired percentile bootstrap (1000 replicates).
 
-| Cell | c | k scale | σ scale | A&S mean PnL (USD) ± 1.96 SE (normal approximation) | A&S SD PnL (USD) | SD PnL A&S / Symmetric | SD PnL A&S / SymTV (skew) | SD PnL SymTV / Symmetric (spread term) |
+| Cell | c | k scale | σ scale | A&S mean PnL (USD) ± 1.96 SE (normal approximation) | A&S SD PnL (USD) | SD PnL A&S / Symmetric | SD PnL A&S / SymTV (skew, with the time-varying spread) | SD PnL SymTV / Symmetric (spread term, without skew) |
 |---|---|---|---|---|---|---|---|---|
 | uninformed | 0.1 | ×1 | ×1 | 30.7 ± 2.3 | 37.6 | 0.491 [0.459, 0.522] | 0.508 [0.472, 0.546] | 0.967 [0.941, 0.996] |
 | uninformed | 0.1 | ×0.5 | ×1 | 18.1 ± 2.1 | 34.1 | 0.696 [0.665, 0.726] | 0.696 [0.665, 0.732] | 1.000 [1.000, 1.000] |
@@ -540,7 +617,7 @@ as computed. The multiplicity count above is wrong for the sensitivity runs: the
 | Table 4, c=1 | SD q_T A&S / Symmetric | 0.3938 | [0.3810, 0.4078] (1000, kept 1000) | [0.3800, 0.4079] (10000, kept 10000) | 3.5%, 0.7% |
 | Table 6, (0.1, 0.9) | Mean PnL A&S − Symmetric (USD) | -125.75 | [-134.67, -115.82] (1000, kept 1000) | [-134.89, -116.40] (10000, kept 10000) | 1.2%, 3.1% |
 
-Symmetric against NaiveTouch comparisons, and Table 7 for the other stress cells, are in `results/backtest/tables.md`.
+Symmetric against NaiveTouch comparisons, and Tables 7a and 7b for the other stress cells, are in `results/backtest/tables.md`.
 
 **Measured results quoted in the reading below** (computed by make_tables.py):
 
@@ -551,14 +628,14 @@ Symmetric against NaiveTouch comparisons, and Table 7 for the other stress cells
 - Stress cells where every strategy loses money on average: (0.01, 0.9), (0.03, 0.9), (0.1, 0.75), (0.1, 0.9).
 - Stress, A&S against Symmetric (c=0.1): SD q_T ratio 0.688 [0.671, 0.707] without informed flow and 0.970 [0.962, 0.977] at (0.1, 0.9); SD PnL ratio 0.476 [0.456, 0.497] and 1.047 [1.031, 1.063]; mean PnL difference -10.7 [-13.5, -8.0] USD and -125.8 [-134.7, -115.8] USD; mean |q| difference -2.56 [-2.60, -2.52] lots at (0.1, 0.9).
 - Fill count var/mean (1 s bins): A&S 1.11 to 2.02, NaiveTouch 0.88 to 1.15 across the stress grid; spread captured per fill by A&S stays between 1.29 and 1.32 ticks.
-- Decomposition, uninformed, c=0.1: SD PnL ratio A&S/Symmetric 0.480 [0.460, 0.503] = A&S/SymTV (skew) 0.495 [0.472, 0.519] × SymTV/Symmetric (spread term) 0.968 [0.950, 0.987]; skew share 0.96. SD q_T ratio A&S/SymTV 0.688 [0.670, 0.705], SymTV/Symmetric 1.003 [0.995, 1.010].
-- Decomposition, uninformed, c=1: SD PnL ratio A&S/Symmetric 0.217 [0.205, 0.229] = A&S/SymTV (skew) 0.259 [0.245, 0.272] × SymTV/Symmetric (spread term) 0.837 [0.807, 0.867]; skew share 0.88. SD q_T ratio A&S/SymTV 0.406 [0.392, 0.420], SymTV/Symmetric 0.969 [0.951, 0.987].
-- Decomposition, stress (0, -), c=0.1: SD PnL ratio A&S/Symmetric 0.476 [0.456, 0.497] = A&S/SymTV (skew) 0.489 [0.467, 0.510] × SymTV/Symmetric (spread term) 0.974 [0.955, 0.996]; skew share 0.96. SD q_T ratio A&S/SymTV 0.693 [0.674, 0.711], SymTV/Symmetric 0.993 [0.984, 1.003].
-- Decomposition, stress (0.1, 0.9), c=0.1: SD PnL ratio A&S/Symmetric 1.047 [1.031, 1.063] = A&S/SymTV (skew) 1.060 [1.044, 1.076] × SymTV/Symmetric (spread term) 0.988 [0.982, 0.993]; skew share 1.27. SD q_T ratio A&S/SymTV 0.970 [0.962, 0.977], SymTV/Symmetric 1.000 [0.999, 1.001].
+- Decomposition, uninformed, c=0.1: SD PnL ratio A&S/Symmetric 0.480 [0.460, 0.503]. Spread first: SymTV/Symmetric (spread term, without skew) 0.968 [0.950, 0.987], then A&S/SymTV (skew, with the time-varying spread) 0.495 [0.472, 0.519]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.462 [0.440, 0.483], then A&S/SkewConst (spread term, with skew) 1.038 [1.025, 1.054]. Skew share: 0.96 spread first, 1.05 skew first, 1.00 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.073 [1.049, 1.097], SD q_T 1.126 [1.110, 1.144], mean PnL +1.7 [+0.4, +3.0] USD. SD q_T ratio: SymTV/Symmetric 1.003 [0.995, 1.010], A&S/SkewConst 1.129 [1.116, 1.143], SkewConst/Symmetric 0.611 [0.594, 0.627]. Mean PnL difference (USD): SymTV − Symmetric -1.2 [-2.5, +0.1], A&S − SkewConst +0.5 [+0.1, +1.0], SkewConst − Symmetric -9.5 [-12.3, -6.7].
+- Decomposition, uninformed, c=1: SD PnL ratio A&S/Symmetric 0.217 [0.205, 0.229]. Spread first: SymTV/Symmetric (spread term, without skew) 0.837 [0.807, 0.867], then A&S/SymTV (skew, with the time-varying spread) 0.259 [0.245, 0.272]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.216 [0.204, 0.229], then A&S/SkewConst (spread term, with skew) 1.004 [0.971, 1.035]. Skew share: 0.88 spread first, 1.00 skew first, 0.94 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.199 [1.145, 1.259], SD q_T 1.290 [1.250, 1.331], mean PnL +7.2 [+5.2, +9.3] USD. SD q_T ratio: SymTV/Symmetric 0.969 [0.951, 0.987], A&S/SkewConst 1.251 [1.215, 1.286], SkewConst/Symmetric 0.315 [0.304, 0.326]. Mean PnL difference (USD): SymTV − Symmetric -5.3 [-7.4, -3.2], A&S − SkewConst +1.8 [+1.4, +2.3], SkewConst − Symmetric -16.7 [-19.9, -13.8].
+- Decomposition, stress (0, -), c=0.1: SD PnL ratio A&S/Symmetric 0.476 [0.456, 0.497]. Spread first: SymTV/Symmetric (spread term, without skew) 0.974 [0.955, 0.996], then A&S/SymTV (skew, with the time-varying spread) 0.489 [0.467, 0.510]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.458 [0.439, 0.479], then A&S/SkewConst (spread term, with skew) 1.039 [1.024, 1.053]. Skew share: 0.96 spread first, 1.05 skew first, 1.01 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.067 [1.042, 1.093], SD q_T 1.137 [1.120, 1.155], mean PnL +3.1 [+1.6, +4.6] USD. SD q_T ratio: SymTV/Symmetric 0.993 [0.984, 1.003], A&S/SkewConst 1.129 [1.114, 1.142], SkewConst/Symmetric 0.609 [0.593, 0.626]. Mean PnL difference (USD): SymTV − Symmetric -2.2 [-3.7, -0.7], A&S − SkewConst +0.9 [+0.5, +1.3], SkewConst − Symmetric -11.6 [-14.6, -8.7].
+- Decomposition, stress (0.1, 0.9), c=0.1: SD PnL ratio A&S/Symmetric 1.047 [1.031, 1.063]. Spread first: SymTV/Symmetric (spread term, without skew) 0.988 [0.982, 0.993], then A&S/SymTV (skew, with the time-varying spread) 1.060 [1.044, 1.076]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 1.048 [1.032, 1.065], then A&S/SkewConst (spread term, with skew) 0.999 [0.996, 1.001]. Skew share: 1.27 spread first, 1.03 skew first, 1.15 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.011 [1.005, 1.017], SD q_T 1.037 [1.032, 1.043], mean PnL -17.4 [-20.7, -14.1] USD. SD q_T ratio: SymTV/Symmetric 1.000 [0.999, 1.001], A&S/SkewConst 1.037 [1.032, 1.043], SkewConst/Symmetric 0.935 [0.927, 0.943]. Mean PnL difference (USD): SymTV − Symmetric +21.0 [+18.2, +24.1], A&S − SkewConst +3.6 [+1.8, +5.2], SkewConst − Symmetric -129.4 [-139.2, -120.4].
 - Sensitivity, uninformed, c=0.1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 0.491 [0.459, 0.522]; k×0.5, σ×1: 0.696 [0.665, 0.726]; k×2, σ×1: 0.277 [0.256, 0.302]; k×1, σ×0.8: 0.567 [0.535, 0.598]; k×1, σ×1.25: 0.409 [0.382, 0.437].
 - Sensitivity, uninformed, c=1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 0.209 [0.194, 0.224]; k×0.5, σ×1: 0.307 [0.279, 0.343]; k×2, σ×1: 0.168 [0.154, 0.183]; k×1, σ×0.8: 0.253 [0.234, 0.272]; k×1, σ×1.25: 0.236 [0.214, 0.259].
 - Sensitivity, stress (0.1, 0.9), c=0.1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 1.048 [1.026, 1.070]; k×0.5, σ×1: 1.013 [0.994, 1.036]; k×2, σ×1: 1.160 [1.128, 1.193]; k×1, σ×0.8: 1.014 [0.998, 1.032]; k×1, σ×1.25: 1.083 [1.057, 1.110].
-- Bootstrap replicates dropped as non-finite: 0 of 976 intervals in the comparison files.
+- Bootstrap intervals: 152 pairs with 1216 intervals in the comparison files, and 15 2 x 2 sets with 45 interaction intervals in the factorial files; replicates dropped as non-finite: 0 of 1261 intervals.
 - Sampling error of the estimates (10 blocks of 100 calibration episodes): SE of σ̂ 0.0028 (0.4% of 0.6764), SE of k̂ 0.0054 (0.5% of 1.0930); the perturbations σ×0.8 and σ×1.25 are 49 and 61 SE, k×0.5 and k×2 are 102 and 203 SE.
 - k fit at the touch: measured λ(0.5) = 0.501/s against 0.259/s from the fitted exponential.
 <!-- tables:end -->
@@ -584,7 +661,7 @@ inventory, more so as $\gamma$ grows, at the cost of a lower mean PnL; from $c =
 mean/SD ratio is higher than the benchmark's (Tables 3 and 4). This comparison changes two things
 at once: A&S skews its quotes with inventory and also lets its spread narrow as $T$ approaches (the
 term $\gamma\sigma^2(T-t)$), while the symmetric benchmark quotes a constant spread (the time
-average of A&S's) with no skew. The SymTV arm separates the two (next paragraph). Two effects that
+average of A&S's) with no skew. The SymTV and SkewConst arms separate the two (next paragraph). Two effects that
 the paper's model does not have:
 
 - *Tick rounding.* The symmetric benchmark's half-spread lies between half a tick and one tick for
@@ -592,7 +669,7 @@ the paper's model does not have:
   several $\gamma$ values (the "distinct results" bullet above). A&S changes with $\gamma$ through
   both the inventory skew and its spread term, which move its quotes across tick boundaries. For
   the same reason SymTV quotes exactly like the symmetric benchmark at $c = 0.01$ and $0.03$ (the
-  ratios of 1.000 in Table 7): the time variation of the spread never crosses a tick there.
+  ratios of 1.000 in Table 7a): the time variation of the spread never crosses a tick there.
 - *Queue position.* The naive touch-joiner has the highest mean PnL and three times as many fills
   as the others, with roughly the benchmark's PnL SD. Quoting at the touch earns less per fill
   but fills far more often. Fills are adversely selected for every strategy (the 10 s markout is
@@ -601,18 +678,40 @@ the paper's model does not have:
   (all uninformed markouts are positive). A&S at the larger $\gamma$ values has a higher mean/SD than
   NaiveTouch, but a lower mean.
 
-**Skew or spread term?** (Table 7, the pre-specified decomposition.) Almost all of the reduction
-in the SD of PnL comes from the inventory skew. In the uninformed baseline the ratio A&S/SymTV
-(skew alone) is 0.495 [0.472, 0.519] at $c = 0.1$ and 0.259 [0.245, 0.272] at $c = 1$, while
-SymTV/Symmetric (the time-varying spread alone) is 0.968 [0.950, 0.987] and 0.837 [0.807, 0.867];
-their products are the A&S/Symmetric ratios 0.480 and 0.217. On the log scale the skew's share is
-0.96 at $c = 0.1$ and 0.88 at $c = 1$ (point estimates); at $c = 0.01$ and $0.03$ it is all of it,
-because SymTV and Symmetric quote identically there. The spread term matters only at the largest
-$\gamma$, where $\gamma\sigma^2(T-t)$ is a few ticks early in the episode: it lowers the PnL SD by
-about 16% at $c = 1$, but leaves the SD of terminal inventory nearly unchanged (0.969 [0.951,
-0.987]); the inventory reduction is the skew's (0.406 [0.392, 0.420]). The spread term also
-accounts for 5.3 of the 14.9 USD lower mean PnL at $c = 1$ (wider quotes early, fewer fills). The
-headline A&S/Symmetric ratios therefore mostly, but not entirely, measure inventory awareness.
+**Skew or spread term?** (Tables 7a and 7b.) The pre-specified decomposition added the
+time-varying spread first and the skew second. The SkewConst arm, added after an independent
+review had shown that the order matters (a post hoc addition, see "Follow-up after an independent
+review"), measures the other order. The two orders do not agree, because the two terms interact:
+the effect of the spread term depends on whether the skew is present.
+
+- *The spread term without skew* lowers the SD of PnL in the uninformed baseline: SymTV/Symmetric
+  is 0.968 [0.950, 0.987] at $c = 0.1$ and 0.837 [0.807, 0.867] at $c = 1$ (and 1.000 at
+  $c = 0.01$ and $0.03$, where SymTV and Symmetric quote identically). *The spread term with skew*
+  does not: A&S/SkewConst is 1.038 [1.025, 1.054] at $c = 0.1$ (it raises the SD) and 1.004
+  [0.971, 1.035] at $c = 1$. With the skew it also raises the SD of terminal inventory (A&S/SkewConst
+  1.129 [1.116, 1.143] and 1.251 [1.215, 1.286]), which it leaves about unchanged without skew
+  (SymTV/Symmetric 1.003 [0.995, 1.010] and 0.969 [0.951, 0.987]). The interaction ratio
+  (A&S/SkewConst)/(SymTV/Symmetric) of the SD of PnL is 1.073 [1.049, 1.097] at $c = 0.1$ and
+  1.199 [1.145, 1.259] at $c = 1$; its interval excludes 1 at $c = 0.1$ and $c = 1$ (Table 7b).
+- *The skew alone* reaches A&S's ratio: SkewConst/Symmetric is 0.462 [0.440, 0.483] at $c = 0.1$
+  and 0.216 [0.204, 0.229] at $c = 1$, against A&S/Symmetric 0.480 [0.460, 0.503] and 0.217
+  [0.205, 0.229]; at $c = 0.1$ it is lower than A&S's. The skew with the time-varying spread
+  (A&S/SymTV) is 0.495 [0.472, 0.519] and 0.259 [0.245, 0.272].
+- A single "skew share" therefore depends on the order. On the log scale it is 0.96 spread first
+  and 1.05 skew first at $c = 0.1$, 0.88 and 1.00 at $c = 1$; the average of the two orders (the
+  two-way Shapley share) is 1.00 and 0.94. At $c = 0.01$ and $0.03$ the spread-first share is 1 by
+  construction and is not reported.
+- Mean PnL behaves the same way: without skew the spread term lowers mean PnL at $c = 1$
+  (SymTV − Symmetric -5.3 [-7.4, -3.2] USD), with skew it raises it (A&S − SkewConst +1.8
+  [+1.4, +2.3] USD), and the skew alone lowers the mean by more than A&S does (SkewConst −
+  Symmetric -16.7 [-19.9, -13.8] USD against A&S − Symmetric -14.9 [-18.0, -11.8] USD).
+
+The reading that survives both orders: the inventory skew carries the reduction in the SD of PnL
+and of terminal inventory; what the time-varying spread adds is order dependent (a reduction
+without the skew, none or an increase with it). The headline A&S/Symmetric ratios measure
+inventory awareness. The earlier statements that the spread term lowers the PnL SD at $c = 1$
+and accounts for part of the lower mean hold only for the spread-first order, that is, for a
+quoter without skew.
 
 **Sensitivity to $k$ and $\sigma$** (Tables 8 and 9). Sampling error in the estimates is small:
 over 10 blocks of 100 calibration episodes the standard error of the 1000-episode estimate is
@@ -621,7 +720,9 @@ $\sigma$, ×0.5 and ×2 for $k$) are 49 to 203 standard errors. They stand for m
 sampling noise: the exponential fitted to market-order reach misses the rate at the touch by
 about a factor of two (Table 2a; last bullet above; partly by construction, since every market
 order reaches half a tick), and $k$ fitted to reach is not the fill rate of our own queued orders
-(Table 2b). The results are sensitive to these inputs in size but not in direction. In the
+(Table 2b). Because $\gamma$ is held fixed, scaling $\sigma$ by 0.8 or 1.25 also scales the
+skew per lot $c$ by 0.64 or 1.56, so the $\sigma$ rows partly measure a change in risk aversion.
+The results are sensitive to these inputs in size but not in direction. In the
 uninformed market the A&S/Symmetric SD-of-PnL ratio at $c = 0.1$ ranges from 0.277 [0.256, 0.302]
 ($k \times 2$) to 0.696 [0.665, 0.726] ($k \times 0.5$) around 0.491 [0.459, 0.522] unperturbed
 (1000 episodes), and at $c = 1$ from 0.168 [0.154, 0.183] to 0.307 [0.279, 0.343] around 0.209
@@ -641,8 +742,9 @@ strategy's mean; every bracketed interval is a paired percentile bootstrap with 
 No bootstrap replicate was dropped as non-finite in any comparison file (bullet above). Recomputed
 with 10,000 replicates, the three headline intervals move by at most 3.5% of their width
 (Table 10), below the pre-specified 5% threshold, so 1000 replicates were kept. The intervals are
-per comparison, not corrected for the number of comparisons (122 pairs and 976 intervals across
-the comparison files).
+per comparison, not corrected for the number of comparisons (152 pairs with 1216 intervals in the
+comparison files, and 15 2 x 2 sets with 45 interaction intervals in the factorial files; the
+SkewConst pairs and the interaction intervals were added post hoc and were not named in advance).
 
 **Informed flow (stress grid).** What the grid shows:
 
@@ -669,11 +771,16 @@ the comparison files).
   roughly the same amount everywhere), but its advantage in SD of terminal inventory shrinks as
   bursts grow, and in the strongest cells its PnL SD is *higher* than the benchmark's and its mean
   PnL is lower by a widening margin (Table 6). The A&S PnL also has a more negative 10 s
-  markout there. Table 7 attributes this to the skew: at (0.1, 0.9), A&S against SymTV has a PnL
-  SD ratio of 1.060 [1.044, 1.076] and a mean PnL difference of -146.8 [-156.9, -136.9] USD, while
-  the spread term alone slightly lowers the SD (0.988 [0.982, 0.993]) and raises the mean
-  (+21.0 [+18.2, +24.1] USD); the "skew share" is above 1 (1.27) because the two effects go in
-  opposite directions. The run does not show why the skew hurts; a plausible mechanism is that
+  markout there. In both orders of Table 7a this comes from the skew: at (0.1, 0.9) the skew
+  raises the PnL SD whether it is added first (SkewConst/Symmetric 1.048 [1.032, 1.065], mean
+  PnL difference -129.4 [-139.2, -120.4] USD) or second (A&S/SymTV 1.060 [1.044, 1.076],
+  -146.8 [-156.9, -136.9] USD). The spread term without skew slightly lowers the SD (SymTV/Symmetric
+  0.988 [0.982, 0.993]) and raises the mean (+21.0 [+18.2, +24.1] USD); with the skew it leaves the
+  SD unchanged (A&S/SkewConst 0.999 [0.996, 1.001]) and raises the mean less (+3.6 [+1.8, +5.2]
+  USD; interaction for the mean -17.4 [-20.7, -14.1] USD). The skew share above 1 in the
+  spread-first order (1.27) comes from the spread term's effect without skew; skew first it is
+  1.03 (Table 7b). The skew alone reaches A&S's ratio here too. The run does not show why the
+  skew hurts; a plausible mechanism is that
   after a burst fills one side, the skewed quotes keep the inventory-reducing side close to a
   price that is still moving away. The A&S model has no term for autocorrelated order flow, so nothing in it
   says it should help here.
@@ -699,7 +806,12 @@ optional flow-aware extension of the original plan was not implemented).
   equals `paper::average_optimal_spread`, NaiveTouch joins the others' touch (not its own order);
   SymmetricTimeVarying gives exactly A&S's quotes (bit for bit) at zero inventory at random times
   including past $T$, is centred on the mid, has A&S's spread at the same $t$ for any inventory,
-  ignores inventory and goes through the same rounding, clipping and limit rules.
+  ignores inventory and goes through the same rounding, clipping and limit rules;
+  SkewConstSpread quotes exactly like SymmetricMatched at zero inventory (bit for bit before
+  rounding), is centred on A&S's reservation price with SymmetricMatched's spread for any
+  inventory and time, caps $t$ at $T$, goes through the common rules, differs from SymTV and A&S
+  where the skew or the time variation crosses a tick, and quotes like SymmetricMatched (as SymTV
+  does) when $\gamma$ is so small that rounding removes both.
 - `backtest_test_hawkes`: mean cluster size against $1/(1-n_{br})$ for $n_{br} \in
   \{0, 0.3, 0.5, 0.8\}$, mean window count against $\nu L/(1-n_{br})$, mean first-generation delay
   against $1/\beta$, buy fraction 1/2 and the immigrant count. Each is a $z$-test with the
@@ -722,8 +834,11 @@ optional flow-aware extension of the original plan was not implemented).
   hand-built path; dispersion index on hand values, and uninformed market-order counts have
   dispersion near 1; fill rate decreases with quote distance (fixed offsets 0.5 to 3.5 ticks);
   resting orders far from the touch leave the reference mid path unchanged.
-- `backtest_test_experiment`: strategy-list parsing, comparison pairs (adding symtv arms leaves
-  the position, and so the bootstrap stream, of every existing pair unchanged), pooled summary statistics
+- `backtest_test_experiment`: strategy-list parsing, comparison pairs (adding symtv arms, and then
+  skewc arms, leaves the position, and so the bootstrap stream, of every existing pair unchanged),
+  the 2 x 2 sets and the interaction bootstrap (it resamples the same episodes for all four arms:
+  A&S = 3 $\times$ SkewConst and SymTV = Symmetric give an interval of exactly [3, 3]; its point
+  estimates equal the ratio of the paired ratios), pooled summary statistics
   on hand-built episodes, the $k$ fit recovers an exact exponential (also on an explicit set of
   points, as used for the calibration blocks), the blocks partition the episodes and reproduce
   the full estimate on identical blocks, the paired bootstrap is degenerate for identical inputs,
@@ -740,7 +855,11 @@ Bugs injected by hand to confirm that the tests can fail (each was reverted): ma
 flipped (caught by the hand-built markout test); the strategy given the background bid stream
 instead of its own (caught by the common-random-numbers test); the pre-trade inventory check
 removed (caught by the limit test); the order manager never keeping an unchanged order (caught
-by the queue-position test). Drawing lifetimes from the shared limit-size stream instead of the
+by the queue-position test). For the SkewConst arm and the interaction, eight deliberate errors
+were each caught by at least one test: SkewConst using A&S's time-varying spread, the skew sign
+flipped, $t$ not capped at $T$, the inventory ignored, the full spread on each side, the four arms
+resampled with different episodes, the interaction ratio multiplied instead of divided, and the
+skewc pairs placed before the symtv pairs. Drawing lifetimes from the shared limit-size stream instead of the
 per-order streams was also tried and, correctly, is *not* caught: that stream is exogenous too,
 so common random numbers still hold.
 
@@ -778,8 +897,9 @@ so common random numbers still hold.
   `results/backtest/MANIFEST.txt`); this is not a performance benchmark.
 - **Sensitivity is one input at a time**, at four fixed perturbations, 1000 episodes each, in three
   cells; joint errors in $k$ and $\sigma$, other $\gamma$ values and the other stress cells are not
-  run. The decomposition uses one way of splitting (skew added to SymTV); the share is a point
-  estimate.
+  run. The skew/spread decomposition is a 2 x 2 design at one $\gamma$ per cell; the skew shares
+  are point estimates and depend on the order of the split (Table 7b), and the skew-first order
+  was added after the results of the first order were known.
 
 ## Deviations from the original plan
 
