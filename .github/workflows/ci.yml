@@ -82,3 +82,11 @@ jobs:
         run: cmake --build build
       - name: Test (C++ tests and pytest, including the stub check)
         run: ctest --test-dir build --output-on-failure
+
+  readme-numbers:
+    name: README numbers match the results files
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: python3 scripts/check_readme_numbers.py
