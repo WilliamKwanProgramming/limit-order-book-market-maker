@@ -287,7 +287,9 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
   over quickly), so even without the bootstrap only 0.03% to 0.14% of rows mismatch. The
   bootstrap removes some of these (713 to 453 rows at $N = 10$) but not most. The remaining
   mismatches come from levels that were deeper than $N$ at the start and later move into the top
-  $N$ (in the per-level counts of `summary.txt` they concentrate at the deepest levels). The
+  $N$, either missing from the engine or holding only the size added in the window (in the
+  per-level counts of `summary.txt` they concentrate at the deepest levels). Seeding the ghosts
+  from the generator's complete book removes all of them (Table 6 below). The
   smaller $N$ is, the less the bootstrap can see: at $N = 1$ it resolves 6 references and leaves
   66 unexplained. On real data, where orders may rest much longer, both the damage and what the
   bootstrap can repair are unknown.
@@ -326,7 +328,28 @@ Results (commands, seed, commit and whether the tree was clean in
 `results/lobster/cut_full_seed/MANIFEST.txt`; per-run `summary.txt` files next to it):
 
 <!-- cut-full-seed:begin -->
+
+**Table 6.** Synthetic cut files (seed 201, 500000 messages after a cut of 100000), lenient policy, every row checked: bootstrap ghosts seeded from the first N-level order-book row against ghosts seeded from the generator's complete book.
+
+| Levels N | Ghosts seeded from | Ghosts created (size) | References resolved | Unexplained / shortfalls | Unknown-id anomalies | Rows with a mismatch | Price structure / size only | Last mismatching message |
+|---|---|---|---|---|---|---|---|---|
+| 5 | row 1 (N levels), `--bootstrap` | 10 (6101) | 40 | 32 / 0 | 32 | 500 | 57 / 443 | 713 |
+| 5 | complete book at the cut | 27 (10821) | 72 | 0 / 0 | 0 | 0 | 0 / 0 | - |
+| 10 | row 1 (N levels), `--bootstrap` | 20 (9140) | 63 | 9 / 0 | 9 | 453 | 453 / 0 | 713 |
+| 10 | complete book at the cut | 27 (10821) | 72 | 0 / 0 | 0 | 0 | 0 / 0 | - |
+
 <!-- cut-full-seed:end -->
+
+**Reading.** The prediction held. With ghosts seeded from the complete book no row mismatches at
+$N = 5$ or $N = 10$, no reference is unexplained, there is no shortfall, and every ghost is
+emptied. The runs seeded from row 1 reproduce the $N = 5$ and $N = 10$ bootstrap rows of Table 4
+exactly (same files, same command). The two runs differ only in the ghosts for levels deeper than
+$N$ at the cut, so in this toy flow every mismatch left by `--bootstrap` comes from those levels:
+when such a level moves into the top $N$, the engine either lacks it (a price-structure mismatch,
+all of them at $N = 10$) or holds only the size added inside the window (a size-only mismatch,
+most of them at $N = 5$). This tests the mechanism, not the heuristic on real data: a real
+order-book file never shows the complete book, and real orders rest far longer than the toy
+flow's.
 
 ## Build, test, reproduce
 

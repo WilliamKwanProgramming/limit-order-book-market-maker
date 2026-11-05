@@ -54,3 +54,12 @@
 | parse | 2000000 | 7.26e+06 | 6.61e+06 | 5.25e+06 |
 | parse+replay | 2000000 | 4.32e+06 | 3.72e+06 | 3.1e+06 |
 | parse+replay+validate | 2000000 | 8.74e+05 | 8.05e+05 | 6.88e+05 |
+
+**Table 6.** Synthetic cut files (seed 201, 500000 messages after a cut of 100000), lenient policy, every row checked: bootstrap ghosts seeded from the first N-level order-book row against ghosts seeded from the generator's complete book.
+
+| Levels N | Ghosts seeded from | Ghosts created (size) | References resolved | Unexplained / shortfalls | Unknown-id anomalies | Rows with a mismatch | Price structure / size only | Last mismatching message |
+|---|---|---|---|---|---|---|---|---|
+| 5 | row 1 (N levels), `--bootstrap` | 10 (6101) | 40 | 32 / 0 | 32 | 500 | 57 / 443 | 713 |
+| 5 | complete book at the cut | 27 (10821) | 72 | 0 / 0 | 0 | 0 | 0 / 0 | - |
+| 10 | row 1 (N levels), `--bootstrap` | 20 (9140) | 63 | 9 / 0 | 9 | 453 | 453 / 0 | 713 |
+| 10 | complete book at the cut | 27 (10821) | 72 | 0 / 0 | 0 | 0 | 0 / 0 | - |
