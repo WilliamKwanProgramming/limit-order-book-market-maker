@@ -37,6 +37,11 @@
 #include <string>
 #include <vector>
 
+#if defined(__linux__)
+#include <sys/resource.h>
+#include <unistd.h>
+#endif
+
 #include "lob/order_book.hpp"
 #include "lob/rng.hpp"
 
@@ -317,6 +322,75 @@ std::string read_first_line(const char* path, const char* prefix) {
   return "unknown";
 }
 
+// How much of the machine other processes used while the benchmark ran: busy CPU time of all CPUs
+// (/proc/stat, Linux only) minus this process's own CPU time, per second of wall time. 0 means the
+// benchmark had the machine to itself; on a 2-CPU VM, 1 means another job kept one CPU busy.
+// Hypervisor steal time (the VM's CPU taken away by the host) is reported separately.
+class InterferenceMeter {
+ public:
+  InterferenceMeter()
+      : wall0_(std::chrono::steady_clock::now()), t0_(read_machine()), own0_(own_cpu()) {}
+
+  // Prints one line (nothing the benchmark's checksum or timing depends on).
+  void print() const {
+#if defined(__linux__)
+    const Machine t1 = read_machine();
+    if (!t0_.ok || !t1.ok) {
+      std::printf("interference:  unknown (/proc/stat not readable)\n");
+      return;
+    }
+    const double wall =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - wall0_).count();
+    const double other = std::max(0.0, (t1.busy - t0_.busy) - (own_cpu() - own0_)) / wall;
+    const double steal = (t1.steal - t0_.steal) / wall;
+    std::printf("interference:  other processes used %.2f CPUs on average over the %.0f s of this "
+                "run (busy time of all CPUs minus this process's, per wall second; 0 = the "
+                "benchmark had the machine to itself); hypervisor steal %.2f CPUs\n",
+                other, wall, steal);
+#else
+    std::printf("interference:  unknown (not Linux)\n");
+#endif
+  }
+
+ private:
+  struct Machine {
+    bool ok = false;
+    double busy = 0, steal = 0;  // seconds
+  };
+
+  static Machine read_machine() {
+    Machine m;
+#if defined(__linux__)
+    std::ifstream in("/proc/stat");
+    std::string cpu;
+    unsigned long long user = 0, nice = 0, sys = 0, idle = 0, iowait = 0, irq = 0, softirq = 0,
+                       steal = 0;
+    if (in >> cpu >> user >> nice >> sys >> idle >> iowait >> irq >> softirq >> steal) {
+      const double hz = static_cast<double>(sysconf(_SC_CLK_TCK));
+      m.ok = cpu == "cpu";
+      m.busy = static_cast<double>(user + nice + sys + irq + softirq) / hz;
+      m.steal = static_cast<double>(steal) / hz;
+    }
+#endif
+    return m;
+  }
+
+  static double own_cpu() {
+#if defined(__linux__)
+    rusage ru{};
+    getrusage(RUSAGE_SELF, &ru);
+    return static_cast<double>(ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) +
+           1e-6 * static_cast<double>(ru.ru_utime.tv_usec + ru.ru_stime.tv_usec);
+#else
+    return 0;
+#endif
+  }
+
+  std::chrono::steady_clock::time_point wall0_;
+  Machine t0_;
+  double own0_;
+};
+
 void describe_stream(const char* name, const Stream& stream, const Shape& shape) {
   const std::size_t timed = stream.msgs.size() - stream.prefix;
   std::size_t counts[kKinds] = {};
@@ -403,6 +477,7 @@ int main(int argc, char** argv) {
   const std::size_t reserve_levels =
       std::max<std::size_t>(4096, 4 * static_cast<std::size_t>(params.depth));
 
+  const InterferenceMeter meter;
   std::printf("bench_replay: messages=%zu runs=%d seed=%llu\n", messages, runs,
               static_cast<unsigned long long>(seed));
   std::printf("book:         target %zu orders, depth %lld ticks, untimed prefill %s; "
@@ -432,5 +507,6 @@ int main(int argc, char** argv) {
     benchmark("matching", matching, runs, reserve_orders, reserve_levels);
   }
   std::printf("\nloadavg at end:   %s\n", read_first_line("/proc/loadavg", nullptr).c_str());
+  meter.print();
   return 0;
 }
