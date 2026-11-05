@@ -1,0 +1,4 @@
+command: /home/claude/limit-order-book-market-maker/build-paper/paper/paper_replication --sims 1000 --seed 1 --bootstrap 2000 --trace 0 --out results/paper/sims1000
+seed: 1
+sims: 1000
+model: s0=100 sigma=2 T=1 A=140 k=1.5 steps=200 dt=0.005
