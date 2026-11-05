@@ -39,8 +39,11 @@ Tests: `test_order_book` (30 hand-checked unit tests) and two randomized differe
 replay 2.4 M matching-mode and 2.2 M replay-mode operations (4 seeds each) against a deliberately
 naive `std::map<Price, std::deque<...>>` model (`tests/reference_book.hpp`), comparing status codes,
 every fill and full depth after every operation, and calling `check_invariants()` every 1000
-operations. As a sanity check that the tests can fail, two bugs were injected by hand (replace kept
-priority on a size increase; a partial reduce skipped the side total); both were caught.
+operations. To check that the tests can fail, `python3 core/tests/mutation_check.py` applies eight
+deliberate bugs one at a time to a temporary copy of the sources (a wrong matching comparison, the
+replace priority rule, hash-table deletion, level search, a fill field, a side total, queue order)
+and requires at least one test program to fail for each. All eight are caught
+(`results/core/mutation_check.txt`).
 
 ## Results snapshot
 
