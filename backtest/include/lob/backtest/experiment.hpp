@@ -15,11 +15,11 @@
 
 namespace lob::backtest {
 
-// "none", "naive", "as:<gamma>", "sym:<gamma>", "fixed:<offset ticks>".
+// "none", "naive", "as:<gamma>", "sym:<gamma>", "symtv:<gamma>", "fixed:<offset ticks>".
 struct StrategySpec {
-  enum class Kind { None, AS, Sym, Naive, Fixed };
+  enum class Kind { None, AS, Sym, Naive, Fixed, SymTV };
   Kind kind = Kind::None;
-  double param = 0.0;  // gamma for AS and Sym, offset for Fixed
+  double param = 0.0;  // gamma for AS, Sym and SymTV, offset for Fixed
   std::string label;   // the spec string as given
 };
 
@@ -31,6 +31,9 @@ struct AsCalibration {
   double sigma = 0.0;
   double k = 0.0;
 };
+
+// True for the strategies built from the A&S inputs (as, sym, symtv).
+bool uses_as_inputs(StrategySpec::Kind k) noexcept;
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
                                         const AsCalibration& c);
@@ -73,14 +76,28 @@ MarketDiagnostics diagnose(const std::vector<EpisodeResult>& eps, double horizon
 
 // k estimate: rate per side lambda(delta) of market orders whose deepest execution lies at least
 // delta ticks from the mid before the order, for delta = 0.5, 1, 1.5, ...; ordinary least squares
-// of ln lambda on delta over the points with at least `min_count` orders.
+// of ln lambda on delta over the points with at least `min_count` orders, or, when `points` is
+// given, over exactly the points i with (*points)[i] true (i indexes delta = 0.5 (i + 1); used to
+// refit a subsample on the points of the full-sample fit).
 struct KFit {
   double A = 0, k = 0, r2 = 0;
   std::vector<double> delta, rate;
   std::vector<std::int64_t> count;
   std::vector<bool> used;
 };
-KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count);
+KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count,
+           const std::vector<bool>* points = nullptr);
+
+// sigma (10 s scale) and k for consecutive blocks of episodes: block b holds episodes
+// [b n / blocks, (b + 1) n / blocks). Each block's k fit uses the points of `full` (fit_k above),
+// so block estimates differ by sampling only. Used for the spread of the estimates.
+struct CalibrationBlock {
+  int first = 0, episodes = 0;
+  double sigma = 0, k = 0, A = 0;
+  int points = 0;  // points used in the block's k fit
+};
+std::vector<CalibrationBlock> calibration_blocks(const std::vector<EpisodeResult>& eps,
+                                                 double horizon, int blocks, const KFit& full);
 
 struct Interval {
   double estimate = 0, lo = 0, hi = 0;
@@ -88,10 +105,13 @@ struct Interval {
 struct NamedInterval {
   std::string name;
   Interval iv;
+  int kept = 0;  // bootstrap replicates with a finite value (the others are dropped)
 };
 // Statistics of a versus b: mean_pnl_diff, sd_pnl_ratio, sd_final_inv_ratio, mean_abs_inv_diff,
 // sharpe_diff, fill_rate_ratio, markout_1s_diff, markout_10s_diff. Paired percentile bootstrap:
 // each replicate draws episode indices with replacement and uses the same indices for a and b.
+// A replicate whose statistic is not finite (a zero SD in a ratio, no fills) is dropped for that
+// statistic; `kept` counts the replicates behind each interval.
 std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
                                             const std::vector<EpisodeResult>& b, double horizon,
                                             int replicates, Rng& rng, double level = 0.95);
@@ -103,8 +123,10 @@ void write_summary_row(std::FILE* f, const std::string& prefix, const StrategySp
 void write_diagnostics_header(std::FILE* f, const char* prefix);
 void write_diagnostics_row(std::FILE* f, const std::string& prefix, const StrategySpec& spec,
                            const MarketDiagnostics& d);
-// Pairs compared: (as:g, sym:g), (as:g, naive) and (sym:g, naive) for every g, when both
-// members are present. Returned as indices into `specs`.
+// Pairs compared, when both members are present: (as:g, sym:g), (as:g, naive) and (sym:g, naive)
+// for every g, then (as:g, symtv:g) and (symtv:g, sym:g). The symtv pairs come last so that adding
+// symtv arms leaves the index (and so the bootstrap stream) of every other pair unchanged.
+// Returned as indices into `specs`.
 std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
     const std::vector<StrategySpec>& specs);
 

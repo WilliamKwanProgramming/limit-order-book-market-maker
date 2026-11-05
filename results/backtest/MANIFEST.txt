@@ -1,43 +1,205 @@
-generated: 2026-11-05T06:22:53Z
-commit: 471cdd1d10ce85b559415e15ce75ac8bc7380e5f
+generated: 2026-11-05T08:28:58Z
+commit: 4e2f9e463ce94330db51a0a6a2cb2e7e5b86c53f
 compiler: /usr/bin/c++
 build type: Release
-machine: 2 cores, Intel(R) Xeon(R) Processor @ 2.80GHz
-load average (1 min) at start: 1.06, at end: 1.06
-episodes per strategy: 2000 (calibration 1000)
+machine: 1 cores, Intel(R) Xeon(R) Processor @ 2.80GHz
+load average (1 min) at start: 4.18, at end: 2.35
+episodes per strategy: 2000 (calibration 1000, sensitivity 1000); bootstrap replicates: 1000
 A&S estimates: sigma=0.67637267833643311 ticks/sqrt(s), k=1.0930232451328947 1/tick
 --- calibration
-command: build-release/backtest/backtest_run --strategies none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5 --episodes 1000 --seed 101 --bootstrap 0 --calibrate 1 --out results/backtest/calibration
+command: build/backtest/backtest_run --strategies none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5 --episodes 1000 --seed 101 --bootstrap 0 --calibrate 1 --calib-blocks 10 --out results/backtest/calibration
 seed: 101
 episodes: 1000
 strategies: none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5
 as_sigma: 1
 as_k: 1
+sigma_scale: 1
+k_scale: 1
 params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
-wall_seconds: 23.1
-loadavg_start: 1.06
-loadavg_end: 1.04
+wall_seconds: 59.8
+loadavg_start: 4.18
+loadavg_end: 4.07
 --- baseline
-command: build-release/backtest/backtest_run --strategies none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629 --episodes 2000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/baseline
+command: build/backtest/backtest_run --strategies none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629,symtv:7.28629e-05,symtv:0.000218589,symtv:0.000728629,symtv:0.00218589,symtv:0.00728629 --episodes 2000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/baseline
 seed: 202
 episodes: 2000
-strategies: none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629
+strategies: none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629,symtv:7.28629e-05,symtv:0.000218589,symtv:0.000728629,symtv:0.00218589,symtv:0.00728629
 as_sigma: 0.67637267833643311
 as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
 params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
-wall_seconds: 109.2
-loadavg_start: 1.04
-loadavg_end: 1.19
+wall_seconds: 322.5
+loadavg_start: 4.07
+loadavg_end: 4.25
 --- stress
-command: build-release/backtest/stress_test --strategies none,naive,as:0.000728629,sym:0.000728629 --nu-grid 0,0.01,0.03,0.1 --nbr-grid 0.5,0.75,0.9 --episodes 2000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/stress
+command: build/backtest/stress_test --strategies none,naive,as:0.000728629,sym:0.000728629,symtv:0.000728629 --nu-grid 0,0.01,0.03,0.1 --nbr-grid 0.5,0.75,0.9 --episodes 2000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/stress
 seed: 303
 episodes: 2000
-strategies: none,naive,as:0.000728629,sym:0.000728629
+strategies: none,naive,as:0.000728629,sym:0.000728629,symtv:0.000728629
 as_sigma: 0.67637267833643311
 as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
 params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
 nu_grid: 0 0.01 0.03 0.1
 nbr_grid: 0.5 0.75 0.9
-wall_seconds: 383.1
-loadavg_start: 1.19
-loadavg_end: 1.06
+wall_seconds: 662.9
+loadavg_start: 4.25
+loadavg_end: 2.28
+--- mc_check/baseline_c1
+command: build/backtest/backtest_run --strategies as:0.00728629,sym:0.00728629 --episodes 2000 --seed 202 --bootstrap 10000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/mc_check/baseline_c1
+seed: 202
+episodes: 2000
+strategies: as:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 24.3
+loadavg_start: 2.28
+loadavg_end: 2.25
+--- mc_check/stress_0.1_0.9
+command: build/backtest/backtest_run --strategies as:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 2000 --seed 303 --bootstrap 10000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/mc_check/stress_0.1_0.9
+seed: 303
+episodes: 2000
+strategies: as:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 27.5
+loadavg_start: 2.25
+loadavg_end: 2.15
+--- sensitivity/uninformed_k1_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1 --out results/backtest/sensitivity/uninformed_k1_s1
+seed: 202
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 43.8
+loadavg_start: 2.15
+loadavg_end: 2.48
+--- sensitivity/stress_0.1_0.9_k1_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 1000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1 --out results/backtest/sensitivity/stress_0.1_0.9_k1_s1
+seed: 303
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 19.7
+loadavg_start: 2.48
+loadavg_end: 2.34
+--- sensitivity/uninformed_k0.5_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 0.5 --sigma-scale 1 --out results/backtest/sensitivity/uninformed_k0.5_s1
+seed: 202
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 0.5
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 34.4
+loadavg_start: 2.34
+loadavg_end: 2.10
+--- sensitivity/stress_0.1_0.9_k0.5_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 1000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 0.5 --sigma-scale 1 --out results/backtest/sensitivity/stress_0.1_0.9_k0.5_s1
+seed: 303
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 0.5
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 18.6
+loadavg_start: 2.10
+loadavg_end: 2.14
+--- sensitivity/uninformed_k2_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 2 --sigma-scale 1 --out results/backtest/sensitivity/uninformed_k2_s1
+seed: 202
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 2
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 35.0
+loadavg_start: 2.14
+loadavg_end: 2.07
+--- sensitivity/stress_0.1_0.9_k2_s1
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 1000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 2 --sigma-scale 1 --out results/backtest/sensitivity/stress_0.1_0.9_k2_s1
+seed: 303
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1
+k_scale: 2
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 20.8
+loadavg_start: 2.07
+loadavg_end: 2.05
+--- sensitivity/uninformed_k1_s0.8
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 0.8 --out results/backtest/sensitivity/uninformed_k1_s0.8
+seed: 202
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 0.80000000000000004
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 33.9
+loadavg_start: 2.05
+loadavg_end: 2.11
+--- sensitivity/stress_0.1_0.9_k1_s0.8
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 1000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 0.8 --out results/backtest/sensitivity/stress_0.1_0.9_k1_s0.8
+seed: 303
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 0.80000000000000004
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 18.2
+loadavg_start: 2.11
+loadavg_end: 2.16
+--- sensitivity/uninformed_k1_s1.25
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629 --episodes 1000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1.25 --out results/backtest/sensitivity/uninformed_k1_s1.25
+seed: 202
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629,as:0.00728629,symtv:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1.25
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 34.0
+loadavg_start: 2.16
+loadavg_end: 2.21
+--- sensitivity/stress_0.1_0.9_k1_s1.25
+command: build/backtest/backtest_run --strategies as:0.000728629,symtv:0.000728629,sym:0.000728629 --news-rate 0.1 --branching 0.9 --episodes 1000 --seed 303 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --k-scale 1 --sigma-scale 1.25 --out results/backtest/sensitivity/stress_0.1_0.9_k1_s1.25
+seed: 303
+episodes: 1000
+strategies: as:0.000728629,symtv:0.000728629,sym:0.000728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+sigma_scale: 1.25
+k_scale: 1
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0.1 branching=0.9 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 20.9
+loadavg_start: 2.21
+loadavg_end: 2.35

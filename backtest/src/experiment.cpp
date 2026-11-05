@@ -51,6 +51,7 @@ const char* kind_name(StrategySpec::Kind k) {
     case StrategySpec::Kind::Sym: return "sym";
     case StrategySpec::Kind::Naive: return "naive";
     case StrategySpec::Kind::Fixed: return "fixed";
+    case StrategySpec::Kind::SymTV: return "symtv";
   }
   return "?";
 }
@@ -70,8 +71,10 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
       s.kind = StrategySpec::Kind::None;
     } else if (head == "naive" && arg.empty()) {
       s.kind = StrategySpec::Kind::Naive;
-    } else if (head == "as" || head == "sym") {
-      s.kind = head == "as" ? StrategySpec::Kind::AS : StrategySpec::Kind::Sym;
+    } else if (head == "as" || head == "sym" || head == "symtv") {
+      s.kind = head == "as"    ? StrategySpec::Kind::AS
+               : head == "sym" ? StrategySpec::Kind::Sym
+                               : StrategySpec::Kind::SymTV;
       ok = to_double(arg, s.param) && s.param > 0.0;
     } else if (head == "fixed") {
       s.kind = StrategySpec::Kind::Fixed;
@@ -80,12 +83,18 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
       ok = false;
     }
     if (!ok) {
-      err = "bad strategy '" + part + "' (none, naive, as:<gamma>, sym:<gamma>, fixed:<ticks>)";
+      err = "bad strategy '" + part + "' (none, naive, as:<gamma>, sym:<gamma>, symtv:<gamma>, "
+            "fixed:<ticks>)";
       return false;
     }
     out.push_back(s);
   }
   return true;
+}
+
+bool uses_as_inputs(StrategySpec::Kind k) noexcept {
+  return k == StrategySpec::Kind::AS || k == StrategySpec::Kind::Sym ||
+         k == StrategySpec::Kind::SymTV;
 }
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
@@ -102,6 +111,7 @@ std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& 
     case StrategySpec::Kind::Sym: return std::make_unique<SymmetricMatched>(a);
     case StrategySpec::Kind::Naive: return std::make_unique<NaiveTouch>();
     case StrategySpec::Kind::Fixed: return std::make_unique<FixedOffset>(s.param);
+    case StrategySpec::Kind::SymTV: return std::make_unique<SymmetricTimeVarying>(a);
   }
   return std::make_unique<NeverQuote>();
 }
@@ -200,7 +210,8 @@ MarketDiagnostics diagnose(const std::vector<EpisodeResult>& eps, double horizon
   return d;
 }
 
-KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count) {
+KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count,
+           const std::vector<bool>* points) {
   KFit f;
   std::int64_t hist[kReachBins] = {};
   for (const EpisodeResult& r : eps) {
@@ -220,7 +231,8 @@ KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t m
     if (ge[j] == 0) break;
     const double delta = 0.5 * static_cast<double>(j);
     const double rate = static_cast<double>(ge[j]) / per_side_time;
-    const bool use = ge[j] >= min_count;
+    const std::size_t i = j - 1;
+    const bool use = points ? (i < points->size() && (*points)[i]) : ge[j] >= min_count;
     f.delta.push_back(delta);
     f.rate.push_back(rate);
     f.count.push_back(ge[j]);
@@ -243,6 +255,29 @@ KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t m
     f.r2 = vy > 0 ? cxy * cxy / (vx * vy) : 1.0;
   }
   return f;
+}
+
+std::vector<CalibrationBlock> calibration_blocks(const std::vector<EpisodeResult>& eps,
+                                                 double horizon, int blocks, const KFit& full) {
+  std::vector<CalibrationBlock> out;
+  const std::size_t n = eps.size();
+  if (blocks < 1) return out;
+  const auto nb = static_cast<std::size_t>(blocks);
+  for (std::size_t b = 0; b < nb; ++b) {
+    const std::size_t lo = b * n / nb, hi = (b + 1) * n / nb;
+    const std::vector<EpisodeResult> sub(eps.begin() + static_cast<std::ptrdiff_t>(lo),
+                                         eps.begin() + static_cast<std::ptrdiff_t>(hi));
+    CalibrationBlock c;
+    c.first = static_cast<int>(lo);
+    c.episodes = static_cast<int>(hi - lo);
+    c.sigma = diagnose(sub, horizon).sigma[2];  // the 10 s scale, as for the full estimate
+    const KFit f = fit_k(sub, horizon, 0, &full.used);
+    c.k = f.k;
+    c.A = f.A;
+    for (bool u : f.used) c.points += u ? 1 : 0;
+    out.push_back(c);
+  }
+  return out;
 }
 
 namespace {
@@ -314,6 +349,7 @@ std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
     ni.name = kStatNames[k];
     ni.iv.estimate = est[k];
     auto& r = reps[static_cast<std::size_t>(k)];
+    ni.kept = static_cast<int>(r.size());
     std::sort(r.begin(), r.end());
     if (r.empty()) {
       ni.iv.lo = ni.iv.hi = std::nan("");
@@ -382,6 +418,16 @@ std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
   for (std::size_t i = 0; i < specs.size(); ++i) {
     if (specs[i].kind == StrategySpec::Kind::Sym && naive >= 0)
       out.emplace_back(i, static_cast<std::size_t>(naive));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::AS) continue;
+    const long tv = find(StrategySpec::Kind::SymTV, specs[i].param);
+    if (tv >= 0) out.emplace_back(i, static_cast<std::size_t>(tv));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::SymTV) continue;
+    const long sym = find(StrategySpec::Kind::Sym, specs[i].param);
+    if (sym >= 0) out.emplace_back(i, static_cast<std::size_t>(sym));
   }
   return out;
 }

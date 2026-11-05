@@ -35,19 +35,27 @@ def skew_c(gamma):
     return gamma * SIGMA**2 * T / 2
 
 
+KIND_NAME = {"as": "A&S", "sym": "Symmetric", "symtv": "SymTV"}
+
+
 def label(row):
-    if row.kind == "as":
-        return f"A&S, c={skew_c(row.param):.2g}"
-    if row.kind == "sym":
-        return f"Symmetric, c={skew_c(row.param):.2g}"
+    if row.kind in KIND_NAME:
+        return f"{KIND_NAME[row.kind]}, c={skew_c(row.param):.2g}"
     return {"naive": "NaiveTouch", "none": "None"}.get(row.kind, row.strategy)
 
 
 def name_of(spec):
     kind, _, p = spec.partition(":")
-    if kind in ("as", "sym"):
-        return ("A&S" if kind == "as" else "Symmetric") + f", c={skew_c(float(p)):.2g}"
+    if kind in KIND_NAME:
+        return f"{KIND_NAME[kind]}, c={skew_c(float(p)):.2g}"
     return {"naive": "NaiveTouch", "none": "None"}.get(kind, spec)
+
+
+def by_gamma(s):
+    """Rows ordered NaiveTouch first, then A&S, SymTV, Symmetric for each gamma."""
+    order = {"naive": 0, "as": 1, "symtv": 2, "sym": 3}
+    s = s.assign(_g=np.where(s.kind == "naive", -1.0, s.param), _o=s.kind.map(order).fillna(9))
+    return s.sort_values(["_g", "_o"], kind="stable").drop(columns=["_g", "_o"])
 
 
 def ci(est, lo, hi, fmt):
@@ -103,26 +111,32 @@ def calibration_table():
     return t1, t2, len(used)
 
 
+PM_HEAD = "Mean PnL (USD) ± 1.96 SE (normal approximation)"
+AS_HEAD = "Adverse selection per fill (spread captured minus 10 s markout, ticks)"
+
+
 def baseline_table():
     s = pd.read_csv(RES / "baseline" / "summary.csv")
-    s = s[s.kind != "none"]
+    s = by_gamma(s[s.kind != "none"])
     rows = []
     for _, r in s.iterrows():
         se = r.sd_pnl / np.sqrt(r.n)
-        rows.append([label(r), f"{r.param:.3g}" if r.kind in ("as", "sym") else "-",
+        rows.append([label(r), f"{r.param:.3g}" if r.kind in KIND_NAME else "-",
                      f"{r.mean_pnl:.1f} ± {1.96 * se:.1f}", f"{r.sd_pnl:.1f}", f"{r.sharpe:.2f}",
                      f"{r.sd_final_inv:.2f}", f"{r.mean_abs_inv:.2f}", f"{r.mean_fills:.0f}",
                      f"{r.fill_rate:.3f}", f"{r.quote_dist:.2f}", f"{r.spread_captured:.2f}",
                      f"{r['markout_0.1s']:+.2f}", f"{r.markout_1s:+.2f}", f"{r.markout_10s:+.2f}",
-                     f"{r.fill_dispersion:.2f}"])
-    return md(["Strategy", "γ", "Mean PnL (USD) ± 95%", "SD PnL (USD)", "Mean/SD", "SD q_T (lots)",
+                     f"{r.fill_dispersion:.2f}", f"{r.spread_captured - r.markout_10s:.2f}"])
+    return md(["Strategy", "γ", PM_HEAD, "SD PnL (USD)", "Mean/SD", "SD q_T (lots)",
                "Mean abs q (lots)", "Fills", "Fills per quote-s", "Quote distance (ticks)",
                "Spread captured (ticks)", "Markout 0.1 s", "Markout 1 s", "Markout 10 s",
-               "Fill var/mean"], rows), s
+               "Fill var/mean", AS_HEAD], rows), s
 
 
-def comparison_table(path, prefix_cols=(), as_only=False):
+def comparison_table(path, prefix_cols=(), as_only=False, kept=False):
     c = pd.read_csv(path)
+    # Pairs with the symtv arm are in the decomposition table.
+    c = c[~c.a.str.startswith("symtv:") & ~c.b.str.startswith("symtv:")]
     if as_only:
         c = c[c.a.str.startswith("as:")]
     keep = ["mean_pnl_diff", "sd_pnl_ratio", "sd_final_inv_ratio", "mean_abs_inv_diff",
@@ -137,16 +151,20 @@ def comparison_table(path, prefix_cols=(), as_only=False):
             "(0, -)" if key[0] == 0 else f"({key[0]:g}, {key[1]:g})"]
         rows.append(lead + [name_of(key[-2]), name_of(key[-1])] +
                     [ci(g.loc[s, "estimate"], g.loc[s, "ci_lo"], g.loc[s, "ci_hi"], fmts[s])
-                     for s in keep])
+                     for s in keep] +
+                    ([f"{int(g.loc[keep, 'replicates_kept'].min())} of {int(g.replicates.iloc[0])}"]
+                     if kept else []))
     head = (["Cell (ν, n_br)"] if prefix_cols else []) + [
         "A", "B", "Mean PnL A − B (USD)", "SD PnL A / B", "SD q_T A / B", "Mean abs q A − B (lots)",
-        "Mean/SD A − B", "Markout 10 s A − B (ticks)"]
+        "Mean/SD A − B", "Markout 10 s A − B (ticks)"] + (
+        ["Bootstrap replicates kept (fewest over the columns)"] if kept else [])
     return md(head, rows), c
 
 
 def stress_table():
     s = pd.read_csv(RES / "stress" / "stress_summary.csv")
     s = s[s.kind != "none"]
+    s = pd.concat([by_gamma(g) for _, g in s.groupby(["nu", "n_br"], sort=False)])
     rows = []
     for _, r in s.iterrows():
         cell = "(0, -)" if r.nu == 0 else f"({r.nu:g}, {r.n_br:g})"
@@ -154,10 +172,213 @@ def stress_table():
         rows.append([cell, label(r), f"{r.mean_pnl:.1f} ± {1.96 * se:.1f}", f"{r.sd_pnl:.1f}",
                      f"{r.sharpe:.2f}", f"{r.sd_final_inv:.2f}", f"{r.mean_abs_inv:.2f}",
                      f"{r.mean_fills:.0f}", f"{r.fill_rate:.3f}", f"{r.spread_captured:.2f}",
-                     f"{r.markout_1s:+.2f}", f"{r.markout_10s:+.2f}", f"{r.fill_dispersion:.2f}"])
-    return md(["Cell (ν, n_br)", "Strategy", "Mean PnL (USD) ± 95%", "SD PnL (USD)", "Mean/SD",
+                     f"{r.markout_1s:+.2f}", f"{r.markout_10s:+.2f}", f"{r.fill_dispersion:.2f}",
+                     f"{r.spread_captured - r.markout_10s:.2f}"])
+    return md(["Cell (ν, n_br)", "Strategy", PM_HEAD, "SD PnL (USD)", "Mean/SD",
                "SD q_T (lots)", "Mean abs q (lots)", "Fills", "Fills per quote-s",
-               "Spread captured (ticks)", "Markout 1 s", "Markout 10 s", "Fill var/mean"], rows), s
+               "Spread captured (ticks)", "Markout 1 s", "Markout 10 s", "Fill var/mean",
+               AS_HEAD], rows), s
+
+
+def skew_share(skew_ratio, both_ratio):
+    """ln(A&S/SymTV) / ln(A&S/Symmetric); undefined (nan) when A&S and Symmetric have equal SDs."""
+    return np.log(skew_ratio) / np.log(both_ratio) if both_ratio != 1 else float("nan")
+
+
+def fmt_share(x):
+    return "undefined (ratio 1)" if np.isnan(x) else f"{x:.2f}"
+
+
+DECOMP_STATS = [("mean_pnl_diff", "+.1f"), ("sd_pnl_ratio", ".3f"), ("sd_final_inv_ratio", ".3f"),
+                ("sharpe_diff", "+.3f")]
+
+
+def decomposition_rows(c, gamma, lead):
+    """A&S/Sym, A&S/SymTV, SymTV/Sym at one gamma, and the product of the two factor ratios.
+
+    The SD ratios multiply exactly (same episodes): A&S/Sym = A&S/SymTV x SymTV/Sym. The skew share
+    is ln(A&S/SymTV) / ln(A&S/Sym) for the SD of PnL (a point estimate)."""
+    a, s, tv = f"as:{gamma}", f"sym:{gamma}", f"symtv:{gamma}"
+    pairs = [(a, s, "A&S vs Symmetric (both effects)"), (a, tv, "A&S vs SymTV (skew)"),
+             (tv, s, "SymTV vs Symmetric (spread term)")]
+    rows, est = [], {}
+    for x, y, what in pairs:
+        g = c[(c.a == x) & (c.b == y)].set_index("statistic")
+        est[what] = g.estimate
+        rows.append(lead + [what] + [ci(g.loc[k, "estimate"], g.loc[k, "ci_lo"], g.loc[k, "ci_hi"], f)
+                                     for k, f in DECOMP_STATS] + ["-"])
+    both, skew, spread = (est[p[2]] for p in pairs)
+    prod = {k: skew[k] * spread[k] for k in ("sd_pnl_ratio", "sd_final_inv_ratio")}
+    for k, v in prod.items():  # the identity holds up to the 10 digits written to the CSV
+        assert abs(v / both[k] - 1) < 1e-8, (gamma, k, v, both[k])
+    share = skew_share(skew["sd_pnl_ratio"], both["sd_pnl_ratio"])
+    rows.append(lead + ["product of the two factors", "-", f"{prod['sd_pnl_ratio']:.3f}",
+                        f"{prod['sd_final_inv_ratio']:.3f}", "-", fmt_share(share)])
+    return rows, share
+
+
+DECOMP_HEAD = ["Mean PnL A − B (USD)", "SD PnL A / B", "SD q_T A / B", "Mean/SD A − B",
+               "Skew share of ln(SD PnL ratio)"]
+
+
+def decomposition_table(full):
+    """Table 7. full=False: the README cells (baseline, stress (0, -) and (0.1, 0.9))."""
+    bc = pd.read_csv(RES / "baseline" / "comparison.csv")
+    sc = pd.read_csv(RES / "stress" / "stress_comparison.csv")
+    rows, shares = [], {}
+    gammas = sorted({a[3:] for a in bc.a if a.startswith("as:")}, key=float)
+    for g in gammas:
+        r, sh = decomposition_rows(bc, g, ["uninformed", f"{skew_c(float(g)):.2g}"])
+        rows += r
+        shares[("uninformed", g)] = sh
+    g = next(a[3:] for a in sc.a if a.startswith("as:"))
+    for (nu, nb), cell in sc.groupby(["nu", "n_br"], sort=False):
+        name = "stress (0, -)" if nu == 0 else f"stress ({nu:g}, {nb:g})"
+        keep = nu == 0 or (np.isclose(nu, 0.1) and np.isclose(nb, 0.9))
+        if not (full or keep):
+            continue
+        r, sh = decomposition_rows(cell, g, [name, f"{skew_c(float(g)):.2g}"])
+        rows += r
+        shares[name] = sh
+    return md(["Run", "c", "A vs B"] + DECOMP_HEAD, rows), shares
+
+
+SETTINGS = [("1", "1"), ("0.5", "1"), ("2", "1"), ("1", "0.8"), ("1", "1.25")]
+PERTURB = {"k": (0.5, 2.0), "sigma": (0.8, 1.25)}
+
+
+def blocks_table():
+    """Table 8: sigma and k on blocks of the calibration run, and their spread."""
+    b = pd.read_csv(RES / "calibration" / "calibration_blocks.csv")
+    n = len(b)
+    rows = [[int(r.block), f"{int(r.first_episode)}-{int(r.first_episode + r.episodes - 1)}",
+             f"{r.sigma:.4f}", f"{r.k:.4f}", int(r.k_points)] for _, r in b.iterrows()]
+    t1 = md(["Block", "Episodes", "σ̂ (ticks/√s)", "k̂ (1/tick)", "k-fit points"], rows)
+    stats = {"blocks": n, "per_block": int(b.episodes.iloc[0])}
+    rows2 = []
+    for col, full, name in (("sigma", SIGMA, "σ̂"), ("k", K, "k̂")):
+        sd = b[col].std(ddof=1)
+        se = sd / np.sqrt(n)
+        lo, hi = PERTURB[col]
+        stats[col] = {"mean": b[col].mean(), "sd": sd, "se": se, "full": full,
+                      "z_lo": abs(1 - lo) * full / se, "z_hi": abs(hi - 1) * full / se}
+        s = stats[col]
+        rows2.append([name, f"{full:.4f}", f"{s['mean']:.4f}", f"{sd:.4f}",
+                      f"{b[col].min():.4f} to {b[col].max():.4f}", f"{se:.4f} ({100 * se / full:.1f}%)",
+                      f"×{lo:g}: {s['z_lo']:.0f} SE; ×{hi:g}: {s['z_hi']:.0f} SE"])
+    n_cal = run_field("calibration", "episodes")
+    t2 = md(["Estimate", f"Full run ({n_cal} episodes)", f"Mean of {n} blocks", "SD of blocks",
+             "Block range", f"SE of full estimate = SD/√{n} (% of estimate)",
+             "Perturbation used, in SE"], rows2)
+    return t1, t2, stats
+
+
+def sensitivity_table(full):
+    """Table 9: A&S and the paired SD-of-PnL ratios under perturbed k and sigma."""
+    rows = []
+    specs = [("uninformed", "uninformed", 2), ("uninformed", "uninformed", 4),
+             ("stress_0.1_0.9", "stress (0.1, 0.9)", 2)]
+    gam = {}
+    for d, name, gi in specs:
+        for ks, ss in SETTINGS:
+            run = RES / "sensitivity" / f"{d}_k{ks}_s{ss}"
+            s = pd.read_csv(run / "summary.csv")
+            c = pd.read_csv(run / "comparison.csv")
+            g = sorted(s[s.kind == "as"].param.unique())[0 if gi == 2 else -1]
+            r = s[(s.kind == "as") & np.isclose(s.param, g)].iloc[0]
+            gs = r.strategy[3:]
+            gam[(name, gi)] = gs
+            a, tv, sy = f"as:{gs}", f"symtv:{gs}", f"sym:{gs}"
+            se = r.sd_pnl / np.sqrt(r.n)
+            row = [name, f"{skew_c(g):.2g}", f"×{ks}", f"×{ss}",
+                   f"{r.mean_pnl:.1f} ± {1.96 * se:.1f}", f"{r.sd_pnl:.1f}",
+                   fmt_iv(c, a, sy, "sd_pnl_ratio", ".3f"), fmt_iv(c, a, tv, "sd_pnl_ratio", ".3f"),
+                   fmt_iv(c, tv, sy, "sd_pnl_ratio", ".3f")]
+            if full:
+                row += [fmt_iv(c, a, sy, "sd_final_inv_ratio", ".3f"),
+                        fmt_iv(c, a, sy, "mean_pnl_diff", "+.1f")]
+            rows.append(row)
+    head = ["Cell", "c", "k scale", "σ scale", "A&S " + PM_HEAD.replace("Mean", "mean"),
+            "A&S SD PnL (USD)", "SD PnL A&S / Symmetric", "SD PnL A&S / SymTV (skew)",
+            "SD PnL SymTV / Symmetric (spread term)"]
+    if full:
+        head += ["SD q_T A&S / Symmetric", "Mean PnL A&S − Symmetric (USD)"]
+    return md(head, rows)
+
+
+def sensitivity_bullets():
+    out = []
+    for d, name, gi in [("uninformed", "uninformed", 2), ("uninformed", "uninformed", 4),
+                        ("stress_0.1_0.9", "stress (0.1, 0.9)", 2)]:
+        vals = {}
+        for ks, ss in SETTINGS:
+            run = RES / "sensitivity" / f"{d}_k{ks}_s{ss}"
+            s = pd.read_csv(run / "summary.csv")
+            c = pd.read_csv(run / "comparison.csv")
+            g = sorted(s[s.kind == "as"].param.unique())[0 if gi == 2 else -1]
+            gs = s[(s.kind == "as") & np.isclose(s.param, g)].strategy.iloc[0][3:]
+            vals[(ks, ss)] = (g, fmt_iv(c, f"as:{gs}", f"sym:{gs}", "sd_pnl_ratio", ".3f"),
+                              fmt_iv(c, f"as:{gs}", f"symtv:{gs}", "sd_pnl_ratio", ".3f"))
+        g = vals[("1", "1")][0]
+        parts = "; ".join(f"k×{ks}, σ×{ss}: {v[1]}" for (ks, ss), v in vals.items())
+        out.append(f"- Sensitivity, {name}, c={skew_c(g):.2g}, SD PnL ratio A&S/Symmetric "
+                   f"({run_field(f'sensitivity/{d}_k1_s1', 'episodes')} episodes): {parts}.")
+    return out
+
+
+def mc_table():
+    """Table 10: headline intervals with the default replicate count and with 10,000."""
+    checks = [("baseline/comparison.csv", "mc_check/baseline_c1/comparison.csv", "Table 4, c=1",
+               "sd_pnl_ratio", "SD PnL A&S / Symmetric", ".4f", {}),
+              ("baseline/comparison.csv", "mc_check/baseline_c1/comparison.csv", "Table 4, c=1",
+               "sd_final_inv_ratio", "SD q_T A&S / Symmetric", ".4f", {}),
+              ("stress/stress_comparison.csv", "mc_check/stress_0.1_0.9/comparison.csv",
+               "Table 6, (0.1, 0.9)", "mean_pnl_diff", "Mean PnL A&S − Symmetric (USD)", ".2f",
+               {"nu": 0.1, "n_br": 0.9})]
+    rows, worst = [], 0.0
+    # The check runs must reproduce the main runs' summaries for the two arms (same seeds).
+    for main, chk in (("baseline/summary.csv", "mc_check/baseline_c1/summary.csv"),
+                      ("stress/stress_summary.csv", "mc_check/stress_0.1_0.9/summary.csv")):
+        m, c = pd.read_csv(RES / main), pd.read_csv(RES / chk)
+        if "nu" in m:
+            m = m[np.isclose(m.nu, 0.1) & np.isclose(m.n_br, 0.9)]
+        for _, r in c.iterrows():
+            mr = m[m.strategy == r.strategy].iloc[0]
+            for col in ("mean_pnl", "sd_pnl", "sd_final_inv", "mean_fills"):
+                assert mr[col] == r[col], (chk, r.strategy, col)
+    for main, chk, where, stat, what, f, cell in checks:
+        mc = pd.read_csv(RES / chk)
+        a, b = mc.a.iloc[0], mc.b.iloc[0]
+        m = pd.read_csv(RES / main)
+        for k, v in cell.items():
+            m = m[np.isclose(m[k], v)]
+        r1 = m[(m.a == a) & (m.b == b) & (m.statistic == stat)].iloc[0]
+        r2 = mc[(mc.a == a) & (mc.b == b) & (mc.statistic == stat)].iloc[0]
+        width = r2.ci_hi - r2.ci_lo
+        mv_lo, mv_hi = abs(r1.ci_lo - r2.ci_lo) / width, abs(r1.ci_hi - r2.ci_hi) / width
+        worst = max(worst, mv_lo, mv_hi)
+        rows.append([where, what, f"{r1.estimate:{f}}",
+                     f"[{r1.ci_lo:{f}}, {r1.ci_hi:{f}}] ({int(r1.replicates)}, kept {int(r1.replicates_kept)})",
+                     f"[{r2.ci_lo:{f}}, {r2.ci_hi:{f}}] ({int(r2.replicates)}, kept {int(r2.replicates_kept)})",
+                     f"{100 * mv_lo:.1f}%, {100 * mv_hi:.1f}%"])
+    t = md(["Interval", "Statistic", "Estimate", "Main run: interval (replicates)",
+            "Check run: interval (replicates)",
+            "Endpoint moves, lower and upper, % of the check interval's width"], rows)
+    return t, worst
+
+
+def dropped_replicates():
+    """Intervals in any comparison file with fewer kept replicates than drawn."""
+    files = sorted(RES.glob("*/comparison.csv")) + sorted(RES.glob("*/stress_comparison.csv")) + \
+        sorted(RES.glob("*/*/comparison.csv"))
+    total, short = 0, []
+    for f in files:
+        c = pd.read_csv(f)
+        total += len(c)
+        d = c[c.replicates_kept < c.replicates]
+        short += [f"{f.relative_to(ROOT)}: {r.a} vs {r.b} {r.statistic} ({r.replicates_kept} of "
+                  f"{r.replicates})" for _, r in d.iterrows()]
+    return total, short
 
 
 def fmt_iv(c, a, b, stat, fmt, **cell):
@@ -222,6 +443,38 @@ def key_results():
         f"{asx.fill_dispersion.max():.2f}, NaiveTouch {nvx.fill_dispersion.min():.2f} to "
         f"{nvx.fill_dispersion.max():.2f} across the stress grid; spread captured per fill by A&S "
         f"stays between {asx.spread_captured.min():.2f} and {asx.spread_captured.max():.2f} ticks.")
+    # Decomposition (Table 7): the rows named in the pre-specified reading.
+    gm = a_s.strategy.iloc[2][3:]
+    for name, c, g, cell in [("uninformed, c=0.1", bc, gm, {}),
+                             ("uninformed, c=1", bc, g_hi[3:], {}),
+                             ("stress (0, -), c=0.1", sc, a_st[3:], {"nu": 0}),
+                             ("stress (0.1, 0.9), c=0.1", sc, a_st[3:], {"nu": 0.1, "n_br": 0.9})]:
+        both = fmt_iv(c, f"as:{g}", f"sym:{g}", "sd_pnl_ratio", ".3f", **cell)
+        skew = fmt_iv(c, f"as:{g}", f"symtv:{g}", "sd_pnl_ratio", ".3f", **cell)
+        spread = fmt_iv(c, f"symtv:{g}", f"sym:{g}", "sd_pnl_ratio", ".3f", **cell)
+        d = c
+        for k, v in cell.items():
+            d = d[np.isclose(d[k], v)]
+        e = d[d.statistic == "sd_pnl_ratio"].set_index(["a", "b"]).estimate
+        share = skew_share(e[(f"as:{g}", f"symtv:{g}")], e[(f"as:{g}", f"sym:{g}")])
+        inv_skew = fmt_iv(c, f"as:{g}", f"symtv:{g}", "sd_final_inv_ratio", ".3f", **cell)
+        inv_spread = fmt_iv(c, f"symtv:{g}", f"sym:{g}", "sd_final_inv_ratio", ".3f", **cell)
+        out.append(
+            f"- Decomposition, {name}: SD PnL ratio A&S/Symmetric {both} = A&S/SymTV (skew) "
+            f"{skew} × SymTV/Symmetric (spread term) {spread}; skew share {fmt_share(share)}. SD q_T "
+            f"ratio A&S/SymTV {inv_skew}, SymTV/Symmetric {inv_spread}.")
+    out += sensitivity_bullets()
+    total, short = dropped_replicates()
+    out.append(f"- Bootstrap replicates dropped as non-finite: {len(short)} of {total} intervals "
+               "in the comparison files" + (": " + "; ".join(short) if short else "") + ".")
+    _, _, bst = blocks_table()
+    out.append(
+        f"- Sampling error of the estimates ({bst['blocks']} blocks of {bst['per_block']} "
+        f"calibration episodes): SE of σ̂ "
+        f"{bst['sigma']['se']:.4f} ({100 * bst['sigma']['se'] / SIGMA:.1f}% of {SIGMA:.4f}), SE "
+        f"of k̂ {bst['k']['se']:.4f} ({100 * bst['k']['se'] / K:.1f}% of {K:.4f}); the perturbations "
+        f"σ×0.8 and σ×1.25 are {bst['sigma']['z_lo']:.0f} and {bst['sigma']['z_hi']:.0f} SE, k×0.5 "
+        f"and k×2 are {bst['k']['z_lo']:.0f} and {bst['k']['z_hi']:.0f} SE.")
     r05 = reach[np.isclose(reach.delta, 0.5)].iloc[0]
     out.append(
         f"- k fit at the touch: measured λ(0.5) = {r05.rate:.3f}/s against "
@@ -238,13 +491,22 @@ def main():
     t_diag = diagnostics_table()
     t_reach, t_probe, n_used = calibration_table()
     t_base, _ = baseline_table()
-    t_cmp, _ = comparison_table(RES / "baseline" / "comparison.csv")
-    t_cmp_s, _ = comparison_table(RES / "baseline" / "comparison.csv", as_only=True)
+    t_cmp, _ = comparison_table(RES / "baseline" / "comparison.csv", kept=True)
+    t_cmp_s, _ = comparison_table(RES / "baseline" / "comparison.csv", as_only=True, kept=True)
     t_stress, _ = stress_table()
     t_scmp, _ = comparison_table(RES / "stress" / "stress_comparison.csv", ("nu", "n_br"))
     t_scmp_s, _ = comparison_table(RES / "stress" / "stress_comparison.csv", ("nu", "n_br"),
                                    as_only=True)
     reps = pd.read_csv(RES / "baseline" / "comparison.csv").replicates.iloc[0]
+    t_dec_full, _ = decomposition_table(full=True)
+    t_dec, _ = decomposition_table(full=False)
+    t_blk, t_blk_sum, _ = blocks_table()
+    t_sens_full = sensitivity_table(full=True)
+    t_sens = sensitivity_table(full=False)
+    n_sens = run_field("sensitivity/uninformed_k1_s1", "episodes")
+    t_mc, worst = mc_table()
+    mc_reps = pd.read_csv(RES / "mc_check" / "baseline_c1" / "comparison.csv").replicates.iloc[0]
+    verdict = ("within" if worst <= 0.05 else "above")
 
     est = (f"**A&S estimates** (calibration run, {n_cal} episodes, seed {seeds['calibration']}): "
            f"σ = {SIGMA:.4f} ticks/√s (10 s returns), k = {K:.4f} per tick, "
@@ -269,16 +531,43 @@ def main():
         "after the fill).", t_base,
         f"**Table 4. Paired comparisons, uninformed baseline**: estimate and paired "
         f"percentile-bootstrap 95% interval ({reps} replicates, same episode indices for A and "
-        "B).", t_cmp,
+        "B; the last column is the number of replicates with a finite value).", t_cmp,
         f"**Table 5. Stress grid** ({n_stress} episodes per strategy and cell, seed "
         f"{seeds['stress']}; cell (0, -) has no informed flow).", t_stress,
         "**Table 6. Paired comparisons across the stress grid** (same bootstrap).", t_scmp,
+        "**Table 7. Inventory skew and spread term, separated** (simulated; same runs and bootstrap "
+        "as Tables 4 and 6). SymTV quotes the mid ∓ half of A&S's spread at the current time "
+        "with no skew, so A&S vs SymTV isolates the inventory skew and SymTV vs Symmetric the "
+        "time-varying spread term. The SD ratios multiply exactly: the product row equals the "
+        "A&S vs Symmetric row. Skew share = ln(SD PnL ratio A&S/SymTV) / ln(SD PnL ratio "
+        "A&S/Symmetric), a point estimate with no interval.", t_dec_full,
+        "**Table 8. Sampling spread of the A&S inputs** (simulated; the calibration run of "
+        "Table 2a cut into consecutive blocks; each block's k fit uses the δ points of the full "
+        "fit). Blocks are independent episodes, so SD/√(blocks) is a standard error of the "
+        "full-run estimate. It measures sampling error only, not the misfit of the exponential "
+        "at the touch.", t_blk, t_blk_sum,
+        f"**Table 9. Sensitivity to the estimated k and σ** (simulated; {n_sens} episodes per "
+        f"cell and setting, the first {n_sens} episodes of the baseline (seed "
+        f"{seeds['baseline']}) and of the stress run (seed {seeds['stress']}), so every setting "
+        f"sees the same episodes). The as, symtv and sym arms get k and σ scaled as shown; γ "
+        f"stays at the value chosen from the unperturbed σ̂, so a perturbation moves both the "
+        f"skew and the spread. Intervals: paired percentile bootstrap ({reps} replicates).",
+        t_sens_full,
+        f"**Table 10. Monte Carlo error of the bootstrap endpoints** (simulated). Three headline "
+        f"intervals recomputed with {mc_reps} replicates on the same episodes (separate runs of "
+        f"the two arms with the same seeds; their summaries are checked to equal the main runs'). "
+        f"Pre-specified rule: if an endpoint moves by more than 5% of the width, every comparison "
+        f"is rerun with 10,000 replicates. Largest move: {100 * worst:.1f}% of the width, "
+        f"{verdict} the 5% threshold. Percentile endpoints are type-7 quantiles of the sorted "
+        f"replicates.", t_mc,
     ]
     body = "\n\n".join(parts) + "\n"
     # The README shows A&S comparisons only; tables.md also has Symmetric against NaiveTouch.
-    short = "\n\n".join(p if p is not t_cmp and p is not t_scmp else
-                         (t_cmp_s if p is t_cmp else t_scmp_s) for p in parts)
-    short += ("\n\nSymmetric against NaiveTouch comparisons are in `results/backtest/tables.md`."
+    swap = {id(t_cmp): t_cmp_s, id(t_scmp): t_scmp_s, id(t_dec_full): t_dec,
+            id(t_sens_full): t_sens}
+    short = "\n\n".join(swap.get(id(p), p) for p in parts)
+    short += ("\n\nSymmetric against NaiveTouch comparisons, and Table 7 for the other stress "
+              "cells, are in `results/backtest/tables.md`."
               "\n\n" + key_results() + "\n")
     (RES / "tables.md").write_text("# Backtest result tables (generated by backtest/make_tables.py)"
                                    "\n\n" + params_table() + "\n\n" + body + "\n" + key_results() + "\n")
