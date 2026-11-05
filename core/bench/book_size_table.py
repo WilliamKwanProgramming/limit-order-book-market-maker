@@ -5,7 +5,9 @@ Usage: book_size_table.py RUN1.txt [RUN2.txt ...]
 Each file is the standard output of one `bench_replay --target-orders K --depth D --prefill 1 ...`
 run. The table has one row per file, in the order given: the target book size, the mean number of
 resting orders and price levels the generator's book held during the timed part, and the median
-time per message (and messages per second) on the replay and matching streams.
+time per message (and messages per second) on the replay and matching streams, and the CPU time
+other processes used on average during the run (the "interference:" line, 0.00 if the benchmark had
+the machine to itself).
 Standard library only.
 """
 import re
@@ -18,8 +20,11 @@ def parse(text: str) -> dict:
     if not m:
         raise ValueError("no 'book:' line; is this bench_replay output from the book-size version?")
     out["target"], out["depth"] = int(m.group(1)), int(m.group(2))
+    m = re.search(r"^interference:\s+other processes used ([\d.]+) CPUs", text, re.M)
+    out["other"] = float(m.group(1)) if m else None
     for name in ("replay", "matching"):
-        m = re.search(rf"^{name} stream: .*?mean (\d+) orders.*?mean ([\d.]+) price levels", text, re.M)
+        m = re.search(rf"^{name} stream: .*?mean (\d+) orders.*?mean ([\d.]+) price levels",
+                      text, re.M)
         if not m:
             raise ValueError(f"no '{name} stream' line")
         out[name] = {"orders": int(m.group(1)), "levels": float(m.group(2))}
@@ -33,13 +38,15 @@ def parse(text: str) -> dict:
 
 def table(rows: list[dict]) -> str:
     head = ("| Target orders | Depth (ticks) | Mean orders; mean price levels (replay stream) | "
-            "Replay: median ns/msg (msgs/s) | Matching: median ns/msg (msgs/s) |")
-    lines = [head, "|---|---|---|---|---|"]
+            "Replay: median ns/msg (msgs/s) | Matching: median ns/msg (msgs/s) | "
+            "Other processes' CPU use (CPUs) |")
+    lines = [head, "|---|---|---|---|---|---|"]
     for r in rows:
         rp, mt = r["replay"], r["matching"]
         lines.append(
             f"| {r['target']:,} | {r['depth']:,} | {rp['orders']:,}; {rp['levels']:.0f} | "
-            f"{rp['ns']:.1f} ({rp['rate']:.2e}) | {mt['ns']:.1f} ({mt['rate']:.2e}) |")
+            f"{rp['ns']:.1f} ({rp['rate']:.2e}) | {mt['ns']:.1f} ({mt['rate']:.2e}) | "
+            f"{'n/a' if r['other'] is None else format(r['other'], '.2f')} |")
     return "\n".join(lines)
 
 

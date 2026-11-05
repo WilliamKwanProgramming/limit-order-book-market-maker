@@ -18,6 +18,8 @@
 #
 # The machine this was written on is a shared 2-core cloud VM, so the script waits until the
 # 1-minute load average is below MAX_LOAD (default 1.3) before each benchmark and records the load.
+# bench_replay also measures how much CPU other processes used while it ran (its "interference:"
+# line); --book-sizes reruns a configuration when that exceeds MAX_OTHER CPUs (default 0.25).
 # Extra arguments after the flags are passed to bench_replay (defaults: 20M messages, 7 runs,
 # seed 42).
 set -euo pipefail
@@ -34,6 +36,7 @@ while [[ "${1:-}" == "--compare-levels" || "${1:-}" == "--book-sizes" ]]; do
 done
 bench_args=("$@")
 max_load="${MAX_LOAD:-1.3}"
+max_other="${MAX_OTHER:-0.25}"
 cxx="${CXX:-g++}"
 
 wait_for_quiet_machine() {
@@ -93,9 +96,19 @@ book_size_sweep() {
   for pair in "${pairs[@]}"; do
     i=$((i + 1))
     read -r target depth <<<"$pair"
-    wait_for_quiet_machine
-    "$build_dir/core/bench_replay" "${bench_args[@]}" --target-orders "$target" --depth "$depth" \
-      --prefill 1 >"$tmp/run_$i.txt"
+    # Rerun a configuration (up to 6 times) if other processes used more than MAX_OTHER CPUs on
+    # average while it ran (the load average cannot tell the benchmark's own load from another job's).
+    for attempt in 1 2 3 4 5 6; do
+      wait_for_quiet_machine
+      "$build_dir/core/bench_replay" "${bench_args[@]}" --target-orders "$target" --depth "$depth" \
+        --prefill 1 >"$tmp/run_$i.txt"
+      other="$(sed -n 's/^interference: *other processes used \([0-9.]*\) CPUs.*/\1/p' "$tmp/run_$i.txt")"
+      if [[ -z "$other" ]] || awk -v o="$other" -v m="$max_other" 'BEGIN { exit !(o < m) }'; then
+        break
+      fi
+      echo "other processes used $other CPUs during the $target-order run (limit $max_other):" \
+        "attempt $attempt of 6" >&2
+    done
   done
   mkdir -p "$(dirname "$out")"
   {
