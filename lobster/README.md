@@ -213,11 +213,12 @@ Tests (CTest, `ctest -R lobster`):
 - `lobster_test_alloc`: a full session (parse, replay, validate, stats) over 12,000 and over
   120,000 messages must make the same number of heap allocations (counted by replacing global
   `operator new`), so nothing is allocated per message once the buffers exist.
-- `python3 lobster/tests/mutation_check.py --out results/lobster/mutation_check.txt` applies 12
+- `python3 lobster/tests/mutation_check.py --out results/lobster/mutation_check.txt` applies 13
   deliberate bugs one at a time to a temporary copy of the sources (time scaling, CR handling, the
   line reader's refill, the side of type 1, type 2 as a deletion, an anomaly check, two bootstrap
-  bugs, two validator bugs, stats weighting, a per-message allocation) and requires at least one
-  test program to fail for each. All 12 are caught (`results/lobster/mutation_check.txt`).
+  bugs, two validator bugs, stats weighting, a per-message allocation, and the cut experiment
+  seeding from the N-level row instead of the complete book) and requires at least one test
+  program to fail for each. All 13 are caught (`results/lobster/mutation_check.txt`).
 
 ## Results
 
