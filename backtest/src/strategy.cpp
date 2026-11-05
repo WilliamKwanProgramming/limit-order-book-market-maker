@@ -68,6 +68,19 @@ QuoteTarget SymmetricMatched::quote(const StrategyView& v) {
   return apply_quote_rules(r.bid, r.ask, true, true, v);
 }
 
+SymmetricTimeVarying::SymmetricTimeVarying(const AsParams& a)
+    : a_(a), rule_(paper::Strategy::SymmetricTimeMatched, a.gamma, to_paper_params(a)) {}
+
+paper::Quotes SymmetricTimeVarying::raw(double t, double s) const {
+  return rule_(0, t, s, 0);
+}
+
+QuoteTarget SymmetricTimeVarying::quote(const StrategyView& v) {
+  if (!v.mid_defined) return {};
+  const paper::Quotes r = raw(std::min(v.t, a_.horizon), v.mid);
+  return apply_quote_rules(r.bid, r.ask, true, true, v);
+}
+
 QuoteTarget NaiveTouch::quote(const StrategyView& v) {
   const double b = v.others_bid ? static_cast<double>(*v.others_bid) : 0.0;
   const double a = v.others_ask ? static_cast<double>(*v.others_ask) : 0.0;

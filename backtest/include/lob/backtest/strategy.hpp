@@ -133,6 +133,23 @@ class SymmetricMatched final : public Strategy {
   paper::QuotingRule rule_;
 };
 
+// Symmetric quoting with the A&S time-varying spread: mid -/+ spread(t)/2 with
+// spread(t) = gamma sigma^2 (T - t) + (2/gamma) ln(1 + gamma/k) at the current time (capped at T,
+// as for A&S), no inventory term (lob::paper::QuotingRule, Strategy::SymmetricTimeMatched).
+// It differs from AvellanedaStoikov only by the skew and from SymmetricMatched only by the time
+// variation of the spread, so comparing the three separates the two effects.
+class SymmetricTimeVarying final : public Strategy {
+ public:
+  explicit SymmetricTimeVarying(const AsParams& a);
+  QuoteTarget quote(const StrategyView& v) override;
+  // Unrounded quotes before the common rules.
+  paper::Quotes raw(double t, double s) const;
+
+ private:
+  AsParams a_;
+  paper::QuotingRule rule_;
+};
+
 // Joins the others' best bid and best ask (no inventory term). A side whose others' book is empty
 // is not quoted.
 class NaiveTouch final : public Strategy {

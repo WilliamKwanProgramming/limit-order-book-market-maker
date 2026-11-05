@@ -1,10 +1,12 @@
-command: build-release/backtest/backtest_run --strategies none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5 --episodes 1000 --seed 101 --bootstrap 0 --calibrate 1 --out results/backtest/calibration
+command: build/backtest/backtest_run --strategies none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5 --episodes 1000 --seed 101 --bootstrap 0 --calibrate 1 --calib-blocks 10 --out results/backtest/calibration
 seed: 101
 episodes: 1000
 strategies: none,fixed:0.5,fixed:1.5,fixed:2.5,fixed:3.5
 as_sigma: 1
 as_k: 1
+sigma_scale: 1
+k_scale: 1
 params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
-wall_seconds: 23.1
-loadavg_start: 1.06
-loadavg_end: 1.04
+wall_seconds: 59.8
+loadavg_start: 4.18
+loadavg_end: 4.07

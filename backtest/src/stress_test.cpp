@@ -24,9 +24,8 @@ int main(int argc, char** argv) {
     return 2;
   }
   for (const StrategySpec& s : specs) {
-    if ((s.kind == StrategySpec::Kind::AS || s.kind == StrategySpec::Kind::Sym) &&
-        !o.calib_given) {
-      std::fprintf(stderr, "as/sym strategies need --as-sigma and --as-k\n");
+    if (uses_as_inputs(s.kind) && !o.calib_given) {
+      std::fprintf(stderr, "as/sym/symtv strategies need --as-sigma and --as-k\n");
       return 2;
     }
   }
@@ -60,7 +59,9 @@ int main(int argc, char** argv) {
   if (!fs || !fd || (o.bootstrap > 0 && !fc)) return 1;
   write_summary_header(fs, "nu,n_br,");
   write_diagnostics_header(fd, "nu,n_br,");
-  if (fc) std::fprintf(fc, "nu,n_br,a,b,replicates,statistic,estimate,ci_lo,ci_hi\n");
+  if (fc) {
+    std::fprintf(fc, "nu,n_br,a,b,replicates,statistic,estimate,ci_lo,ci_hi,replicates_kept\n");
+  }
 
   const std::string load_start = cli::loadavg();
   const auto t0 = std::chrono::steady_clock::now();
@@ -68,7 +69,7 @@ int main(int argc, char** argv) {
     SimParams p = o.sim;
     p.news_rate = cells[c].nu;
     p.branching = cells[c].nbr;
-    const CellResults res = run_cell(p, specs, o.calib, o.seed, o.episodes);
+    const CellResults res = run_cell(p, specs, o.as_inputs(), o.seed, o.episodes);
     char prefix[64];
     std::snprintf(prefix, sizeof prefix, "%g,%g,", cells[c].nu, cells[c].nbr);
     for (std::size_t s = 0; s < specs.size(); ++s) {

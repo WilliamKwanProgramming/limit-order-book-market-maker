@@ -1,5 +1,6 @@
 // Experiment helpers: strategy parsing, comparison pairs, pooled summaries, the k fit and the
 // paired bootstrap.
+#include <algorithm>
 #include <cmath>
 
 #include "lob/backtest/experiment.hpp"
@@ -17,7 +18,12 @@ LOB_TEST(parses_strategy_lists) {
   LOB_CHECK(s[3].kind == StrategySpec::Kind::Sym && s[3].param == 0.002);
   LOB_CHECK(s[4].kind == StrategySpec::Kind::Fixed && s[4].param == 1.5);
   LOB_CHECK_EQ(s[3].label, std::string("sym:2e-3"));
-  for (const char* bad : {"as", "as:0", "as:-1", "sym:x", "fixed:-1", "foo", "naive:1", ""}) {
+  LOB_CHECK(parse_strategies("symtv:0.004", s, err));
+  LOB_CHECK(s[0].kind == StrategySpec::Kind::SymTV && s[0].param == 0.004);
+  LOB_CHECK(uses_as_inputs(StrategySpec::Kind::SymTV) && uses_as_inputs(StrategySpec::Kind::Sym) &&
+            uses_as_inputs(StrategySpec::Kind::AS) && !uses_as_inputs(StrategySpec::Kind::Naive));
+  for (const char* bad : {"as", "as:0", "as:-1", "sym:x", "fixed:-1", "foo", "naive:1", "",
+                          "symtv", "symtv:0"}) {
     LOB_CHECK(!parse_strategies(bad, s, err));
   }
 }
@@ -32,6 +38,24 @@ LOB_TEST(comparison_pairs_match_gammas) {
   LOB_CHECK(p[0] == std::make_pair(std::size_t{1}, std::size_t{2}));
   LOB_CHECK(p[1] == std::make_pair(std::size_t{1}, std::size_t{0}));
   LOB_CHECK(p[2] == std::make_pair(std::size_t{3}, std::size_t{0}));
+}
+
+LOB_TEST(symtv_pairs_come_after_the_existing_pairs) {
+  std::vector<StrategySpec> s, old;
+  std::string err;
+  LOB_CHECK(parse_strategies("naive,as:0.1,sym:0.1,as:0.2,sym:0.2", old, err));
+  LOB_CHECK(parse_strategies("naive,as:0.1,sym:0.1,as:0.2,sym:0.2,symtv:0.1,symtv:0.2", s, err));
+  const auto po = comparison_pairs(old);
+  const auto p = comparison_pairs(s);
+  // The existing pairs keep their positions (and so their bootstrap streams).
+  LOB_CHECK_EQ(p.size(), po.size() + 4);
+  for (std::size_t i = 0; i < po.size(); ++i) LOB_CHECK(p[i] == po[i]);
+  const std::size_t n = po.size();
+  // as:g vs symtv:g for each g, then symtv:g vs sym:g.
+  LOB_CHECK(p[n] == std::make_pair(std::size_t{1}, std::size_t{5}));
+  LOB_CHECK(p[n + 1] == std::make_pair(std::size_t{3}, std::size_t{6}));
+  LOB_CHECK(p[n + 2] == std::make_pair(std::size_t{5}, std::size_t{2}));
+  LOB_CHECK(p[n + 3] == std::make_pair(std::size_t{6}, std::size_t{4}));
 }
 
 LOB_TEST(summary_pools_ratios) {
@@ -89,6 +113,67 @@ LOB_TEST(k_fit_recovers_an_exact_exponential) {
   for (bool u : h.used) used += u ? 1 : 0;
   LOB_CHECK_EQ(used, std::size_t{9});
   LOB_CHECK_NEAR(h.k, k, 1e-6);
+}
+
+LOB_TEST(k_fit_on_given_points_and_calibration_blocks) {
+  const double k = 1.3, A = 0.9, horizon = 5e8;
+  EpisodeResult r;
+  std::vector<double> ge(kReachBins + 1, 0.0);
+  for (std::size_t j = 1; j < 20; ++j) ge[j] = std::round(1e9 * A * std::exp(-k * 0.5 * static_cast<double>(j)));
+  for (std::size_t j = 1; j < 20; ++j)
+    r.reach_hist[j] = static_cast<std::int64_t>(ge[j] - ge[j + 1]);
+  const KFit by_count = fit_k({r}, horizon, static_cast<std::int64_t>(ge[10]) + 1);
+  // Fitting on the same points given explicitly gives the same fit, whatever the counts.
+  const KFit by_mask = fit_k({r}, horizon, 0, &by_count.used);
+  LOB_CHECK(by_mask.used == by_count.used);
+  LOB_CHECK_EQ(by_mask.k, by_count.k);
+  LOB_CHECK_EQ(by_mask.A, by_count.A);
+  std::vector<bool> two(by_count.used.size(), false);
+  two[2] = two[5] = true;
+  const KFit h = fit_k({r}, horizon, 0, &two);
+  LOB_CHECK_EQ(std::count(h.used.begin(), h.used.end(), true), 2);
+  LOB_CHECK_NEAR(h.k, k, 1e-5);
+  // Blocks of identical episodes: every block gives the full-sample estimates. Ten episodes in
+  // three blocks: 3, 3 and 4 episodes, consecutive.
+  r.vol_ss[2] = 40.0;
+  r.vol_n[2] = 6;
+  std::vector<EpisodeResult> eps(10, r);
+  const KFit full = fit_k(eps, horizon, 100);
+  const auto blocks = calibration_blocks(eps, horizon, 3, full);
+  LOB_CHECK_EQ(blocks.size(), std::size_t{3});
+  LOB_CHECK_EQ(blocks[0].first, 0);
+  LOB_CHECK_EQ(blocks[1].first, 3);
+  LOB_CHECK_EQ(blocks[2].first, 6);
+  LOB_CHECK_EQ(blocks[2].episodes, 4);
+  for (const CalibrationBlock& b : blocks) {
+    LOB_CHECK_NEAR(b.k, full.k, 1e-9);
+    LOB_CHECK_NEAR(b.sigma, std::sqrt(40.0 / (6 * 10.0)), 1e-12);
+    LOB_CHECK_EQ(b.points, static_cast<int>(std::count(full.used.begin(), full.used.end(), true)));
+  }
+  // A block with different data gives a different estimate.
+  eps[0].vol_ss[2] = 400.0;
+  const auto b2 = calibration_blocks(eps, horizon, 3, full);
+  LOB_CHECK(b2[0].sigma > blocks[0].sigma && b2[1].sigma == blocks[1].sigma);
+}
+
+LOB_TEST(bootstrap_counts_dropped_replicates) {
+  std::vector<EpisodeResult> a(50), b(50);
+  Rng rng(3);
+  for (std::size_t i = 0; i < a.size(); ++i) {
+    a[i].pnl = rng.normal(0.0, 1.0);
+    b[i].pnl = 7.0;  // constant: SD 0 in every replicate, so the SD ratio is never finite
+    a[i].final_inventory = static_cast<Qty>(i % 3);
+    b[i].final_inventory = static_cast<Qty>(i % 5);
+  }
+  Rng r(4);
+  const auto out = paired_bootstrap(a, b, 600.0, 100, r);
+  for (const NamedInterval& ni : out) {
+    if (ni.name == "sd_pnl_ratio") {
+      LOB_CHECK_EQ(ni.kept, 0);
+      LOB_CHECK(std::isnan(ni.iv.lo) && std::isnan(ni.iv.hi));
+    }
+    if (ni.name == "mean_pnl_diff") LOB_CHECK_EQ(ni.kept, 100);
+  }
 }
 
 LOB_TEST(bootstrap_of_identical_strategies_is_degenerate) {
