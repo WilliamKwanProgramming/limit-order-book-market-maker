@@ -15,3 +15,8 @@ build/
 data/raw/
 .env
 *.env
+
+# Local build directories (one per working tree or agent)
+build-*/
+cmake-build-*/
+/out/

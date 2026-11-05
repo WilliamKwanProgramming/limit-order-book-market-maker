@@ -1,0 +1,10 @@
+add_library(lob_common INTERFACE)
+target_include_directories(lob_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(lob_common INTERFACE lob::options)
+add_library(lob::common ALIAS lob_common)
+
+if(LOB_BUILD_TESTS)
+  add_executable(common_tests tests/test_common.cpp)
+  target_link_libraries(common_tests PRIVATE lob::common)
+  add_test(NAME common_tests COMMAND common_tests)
+endif()
