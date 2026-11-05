@@ -71,18 +71,23 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | NaiveTouch | - | 62.9 ± 3.4 | 76.6 | 0.82 | 5.90 | 4.45 | 242 | 0.209 | 0.61 | 0.57 | +0.34 | +0.31 | +0.28 | 0.88 | 0.28 |
 | A&S, c=0.01 | 7.29e-05 | 38.7 ± 3.3 | 74.2 | 0.52 | 6.04 | 3.83 | 76 | 0.065 | 1.43 | 1.27 | +0.68 | +0.65 | +0.62 | 1.13 | 0.64 |
+| SkewConst, c=0.01 | 7.29e-05 | 38.9 ± 3.3 | 74.7 | 0.52 | 6.04 | 3.85 | 76 | 0.065 | 1.43 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.64 |
 | SymTV, c=0.01 | 7.29e-05 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | Symmetric, c=0.01 | 7.29e-05 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.03 | 0.000219 | 35.5 ± 2.4 | 55.2 | 0.64 | 5.38 | 2.73 | 73 | 0.061 | 1.45 | 1.30 | +0.68 | +0.65 | +0.61 | 1.12 | 0.68 |
+| SkewConst, c=0.03 | 0.000219 | 35.6 ± 2.4 | 55.0 | 0.65 | 5.32 | 2.73 | 73 | 0.061 | 1.45 | 1.30 | +0.68 | +0.65 | +0.61 | 1.12 | 0.68 |
 | SymTV, c=0.03 | 0.000219 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | Symmetric, c=0.03 | 0.000219 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.1 | 0.000729 | 31.4 ± 1.6 | 37.4 | 0.84 | 4.20 | 1.75 | 69 | 0.058 | 1.48 | 1.32 | +0.68 | +0.64 | +0.58 | 1.11 | 0.74 |
+| SkewConst, c=0.1 | 0.000729 | 30.8 ± 1.6 | 36.0 | 0.86 | 3.72 | 1.69 | 70 | 0.059 | 1.48 | 1.31 | +0.68 | +0.63 | +0.58 | 1.11 | 0.73 |
 | SymTV, c=0.1 | 0.000729 | 39.2 ± 3.3 | 75.5 | 0.52 | 6.11 | 3.89 | 73 | 0.062 | 1.45 | 1.29 | +0.68 | +0.66 | +0.63 | 1.13 | 0.66 |
 | Symmetric, c=0.1 | 0.000729 | 40.4 ± 3.4 | 78.0 | 0.52 | 6.09 | 4.06 | 77 | 0.066 | 1.42 | 1.26 | +0.68 | +0.65 | +0.62 | 1.13 | 0.63 |
 | A&S, c=0.3 | 0.00219 | 27.1 ± 1.1 | 24.1 | 1.12 | 3.19 | 1.00 | 63 | 0.052 | 1.60 | 1.34 | +0.67 | +0.61 | +0.52 | 1.10 | 0.82 |
+| SkewConst, c=0.3 | 0.00219 | 25.5 ± 1.0 | 23.6 | 1.08 | 2.85 | 0.96 | 61 | 0.051 | 1.60 | 1.35 | +0.67 | +0.59 | +0.51 | 1.09 | 0.84 |
 | SymTV, c=0.3 | 0.00219 | 35.9 ± 3.0 | 69.0 | 0.52 | 5.83 | 3.53 | 59 | 0.050 | 1.53 | 1.43 | +0.71 | +0.69 | +0.65 | 1.10 | 0.78 |
 | Symmetric, c=0.3 | 0.00219 | 33.4 ± 3.0 | 69.0 | 0.48 | 5.69 | 3.51 | 52 | 0.044 | 1.58 | 1.53 | +0.73 | +0.71 | +0.67 | 1.08 | 0.86 |
 | A&S, c=1 | 0.00729 | 18.5 ± 0.7 | 14.9 | 1.24 | 2.24 | 0.42 | 52 | 0.043 | 1.95 | 1.30 | +0.63 | +0.50 | +0.40 | 1.10 | 0.90 |
+| SkewConst, c=1 | 0.00729 | 16.6 ± 0.7 | 14.9 | 1.12 | 1.79 | 0.45 | 64 | 0.053 | 1.72 | 1.17 | +0.55 | +0.40 | +0.29 | 1.09 | 0.88 |
 | SymTV, c=1 | 0.00729 | 28.0 ± 2.5 | 57.7 | 0.49 | 5.51 | 2.74 | 41 | 0.035 | 1.92 | 1.63 | +0.80 | +0.77 | +0.74 | 1.11 | 0.89 |
 | Symmetric, c=1 | 0.00729 | 33.4 ± 3.0 | 69.0 | 0.48 | 5.69 | 3.51 | 52 | 0.044 | 1.58 | 1.53 | +0.73 | +0.71 | +0.67 | 1.08 | 0.86 |
 
@@ -112,42 +117,52 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | (0, -) | NaiveTouch | 63.5 ± 3.4 | 77.3 | 0.82 | 5.77 | 4.48 | 243 | 0.210 | 0.57 | +0.32 | +0.29 | 0.88 | 0.28 |
 | (0, -) | A&S, c=0.1 | 31.4 ± 1.6 | 37.4 | 0.84 | 4.08 | 1.75 | 70 | 0.058 | 1.32 | +0.64 | +0.59 | 1.11 | 0.73 |
+| (0, -) | SkewConst, c=0.1 | 30.5 ± 1.6 | 36.0 | 0.85 | 3.62 | 1.69 | 70 | 0.059 | 1.31 | +0.64 | +0.58 | 1.11 | 0.73 |
 | (0, -) | SymTV, c=0.1 | 40.0 ± 3.4 | 76.5 | 0.52 | 5.89 | 3.83 | 73 | 0.063 | 1.29 | +0.66 | +0.64 | 1.13 | 0.65 |
 | (0, -) | Symmetric, c=0.1 | 42.1 ± 3.4 | 78.6 | 0.54 | 5.93 | 4.04 | 77 | 0.066 | 1.26 | +0.66 | +0.63 | 1.13 | 0.63 |
 | (0.01, 0.5) | NaiveTouch | 61.2 ± 3.5 | 79.6 | 0.77 | 5.82 | 4.50 | 246 | 0.213 | 0.57 | +0.31 | +0.28 | 0.89 | 0.29 |
 | (0.01, 0.5) | A&S, c=0.1 | 30.4 ± 1.7 | 39.1 | 0.78 | 4.16 | 1.77 | 72 | 0.060 | 1.32 | +0.63 | +0.57 | 1.12 | 0.75 |
+| (0.01, 0.5) | SkewConst, c=0.1 | 29.5 ± 1.7 | 38.0 | 0.78 | 3.71 | 1.71 | 73 | 0.061 | 1.31 | +0.62 | +0.56 | 1.12 | 0.75 |
 | (0.01, 0.5) | SymTV, c=0.1 | 38.7 ± 3.5 | 80.3 | 0.48 | 5.89 | 3.90 | 76 | 0.065 | 1.28 | +0.65 | +0.62 | 1.15 | 0.67 |
 | (0.01, 0.5) | Symmetric, c=0.1 | 40.7 ± 3.6 | 81.7 | 0.50 | 5.93 | 4.10 | 79 | 0.068 | 1.26 | +0.65 | +0.61 | 1.15 | 0.64 |
 | (0.01, 0.75) | NaiveTouch | 45.1 ± 4.3 | 98.4 | 0.46 | 5.84 | 4.57 | 248 | 0.215 | 0.57 | +0.29 | +0.22 | 0.90 | 0.35 |
 | (0.01, 0.75) | A&S, c=0.1 | 13.7 ± 3.0 | 69.4 | 0.20 | 4.44 | 1.86 | 76 | 0.063 | 1.31 | +0.57 | +0.34 | 1.18 | 0.97 |
+| (0.01, 0.75) | SkewConst, c=0.1 | 12.8 ± 3.0 | 68.6 | 0.19 | 3.98 | 1.80 | 76 | 0.064 | 1.31 | +0.57 | +0.34 | 1.17 | 0.97 |
 | (0.01, 0.75) | SymTV, c=0.1 | 22.9 ± 4.5 | 103.2 | 0.22 | 6.06 | 4.11 | 79 | 0.068 | 1.28 | +0.60 | +0.42 | 1.21 | 0.86 |
 | (0.01, 0.75) | Symmetric, c=0.1 | 24.8 ± 4.6 | 104.9 | 0.24 | 6.10 | 4.30 | 82 | 0.071 | 1.25 | +0.59 | +0.42 | 1.21 | 0.83 |
 | (0.01, 0.9) | NaiveTouch | -41.1 ± 9.9 | 225.7 | -0.18 | 6.07 | 4.77 | 251 | 0.218 | 0.59 | +0.26 | -0.06 | 0.92 | 0.65 |
 | (0.01, 0.9) | A&S, c=0.1 | -95.7 ± 10.7 | 243.9 | -0.39 | 4.97 | 2.10 | 82 | 0.069 | 1.31 | +0.42 | -0.75 | 1.29 | 2.06 |
+| (0.01, 0.9) | SkewConst, c=0.1 | -96.1 ± 10.7 | 244.0 | -0.39 | 4.58 | 2.04 | 83 | 0.070 | 1.30 | +0.42 | -0.73 | 1.29 | 2.04 |
 | (0.01, 0.9) | SymTV, c=0.1 | -76.9 ± 10.7 | 243.4 | -0.32 | 6.33 | 4.49 | 83 | 0.073 | 1.27 | +0.45 | -0.55 | 1.34 | 1.82 |
 | (0.01, 0.9) | Symmetric, c=0.1 | -76.6 ± 10.9 | 247.6 | -0.31 | 6.34 | 4.65 | 87 | 0.077 | 1.24 | +0.45 | -0.51 | 1.34 | 1.75 |
 | (0.03, 0.5) | NaiveTouch | 58.8 ± 3.7 | 85.5 | 0.69 | 5.80 | 4.54 | 253 | 0.218 | 0.57 | +0.30 | +0.27 | 0.89 | 0.31 |
 | (0.03, 0.5) | A&S, c=0.1 | 29.7 ± 1.9 | 42.4 | 0.70 | 4.36 | 1.81 | 77 | 0.065 | 1.31 | +0.61 | +0.53 | 1.16 | 0.79 |
+| (0.03, 0.5) | SkewConst, c=0.1 | 28.6 ± 1.8 | 41.1 | 0.70 | 3.86 | 1.75 | 78 | 0.065 | 1.30 | +0.60 | +0.52 | 1.15 | 0.79 |
 | (0.03, 0.5) | SymTV, c=0.1 | 37.4 ± 3.8 | 86.5 | 0.43 | 6.01 | 4.07 | 81 | 0.070 | 1.28 | +0.63 | +0.58 | 1.18 | 0.70 |
 | (0.03, 0.5) | Symmetric, c=0.1 | 39.4 ± 3.9 | 88.2 | 0.45 | 6.05 | 4.24 | 85 | 0.073 | 1.25 | +0.63 | +0.58 | 1.19 | 0.67 |
 | (0.03, 0.75) | NaiveTouch | 8.4 ± 5.8 | 133.3 | 0.06 | 6.01 | 4.76 | 259 | 0.225 | 0.59 | +0.25 | +0.09 | 0.92 | 0.50 |
 | (0.03, 0.75) | A&S, c=0.1 | -24.9 ± 4.9 | 111.9 | -0.22 | 5.03 | 2.09 | 89 | 0.074 | 1.31 | +0.45 | -0.07 | 1.31 | 1.38 |
+| (0.03, 0.75) | SkewConst, c=0.1 | -25.9 ± 4.9 | 111.4 | -0.23 | 4.62 | 2.04 | 89 | 0.075 | 1.30 | +0.45 | -0.07 | 1.31 | 1.37 |
 | (0.03, 0.75) | SymTV, c=0.1 | -14.1 ± 6.0 | 137.3 | -0.10 | 6.36 | 4.52 | 90 | 0.079 | 1.27 | +0.48 | +0.07 | 1.36 | 1.20 |
 | (0.03, 0.75) | Symmetric, c=0.1 | -13.8 ± 6.1 | 140.2 | -0.10 | 6.35 | 4.68 | 95 | 0.083 | 1.24 | +0.47 | +0.06 | 1.37 | 1.17 |
 | (0.03, 0.9) | NaiveTouch | -213.7 ± 14.4 | 329.6 | -0.65 | 6.21 | 5.15 | 267 | 0.235 | 0.63 | +0.15 | -0.61 | 0.98 | 1.23 |
 | (0.03, 0.9) | A&S, c=0.1 | -317.1 ± 17.0 | 389.0 | -0.82 | 5.91 | 2.61 | 106 | 0.090 | 1.30 | +0.14 | -2.28 | 1.56 | 3.58 |
+| (0.03, 0.9) | SkewConst, c=0.1 | -317.9 ± 17.1 | 389.0 | -0.82 | 5.58 | 2.57 | 107 | 0.091 | 1.30 | +0.14 | -2.26 | 1.55 | 3.56 |
 | (0.03, 0.9) | SymTV, c=0.1 | -269.8 ± 16.1 | 366.4 | -0.74 | 6.85 | 5.26 | 103 | 0.093 | 1.26 | +0.18 | -1.91 | 1.64 | 3.17 |
 | (0.03, 0.9) | Symmetric, c=0.1 | -276.2 ± 16.2 | 369.7 | -0.75 | 6.86 | 5.40 | 108 | 0.097 | 1.22 | +0.18 | -1.87 | 1.64 | 3.09 |
 | (0.1, 0.5) | NaiveTouch | 44.4 ± 4.5 | 102.0 | 0.44 | 5.87 | 4.70 | 275 | 0.239 | 0.59 | +0.27 | +0.21 | 0.91 | 0.38 |
 | (0.1, 0.5) | A&S, c=0.1 | 24.5 ± 2.5 | 56.7 | 0.43 | 4.68 | 1.93 | 96 | 0.081 | 1.30 | +0.55 | +0.42 | 1.24 | 0.88 |
+| (0.1, 0.5) | SkewConst, c=0.1 | 23.0 ± 2.4 | 54.9 | 0.42 | 4.15 | 1.86 | 97 | 0.081 | 1.30 | +0.54 | +0.41 | 1.23 | 0.88 |
 | (0.1, 0.5) | SymTV, c=0.1 | 35.1 ± 4.7 | 106.7 | 0.33 | 6.11 | 4.33 | 101 | 0.087 | 1.26 | +0.57 | +0.49 | 1.28 | 0.78 |
 | (0.1, 0.5) | Symmetric, c=0.1 | 35.9 ± 4.7 | 107.9 | 0.33 | 6.08 | 4.50 | 106 | 0.092 | 1.23 | +0.56 | +0.48 | 1.28 | 0.75 |
 | (0.1, 0.75) | NaiveTouch | -108.6 ± 9.1 | 207.3 | -0.52 | 6.17 | 5.09 | 296 | 0.261 | 0.64 | +0.13 | -0.26 | 0.99 | 0.89 |
 | (0.1, 0.75) | A&S, c=0.1 | -155.0 ± 8.7 | 198.5 | -0.78 | 5.91 | 2.60 | 134 | 0.114 | 1.29 | +0.21 | -0.83 | 1.59 | 2.12 |
+| (0.1, 0.75) | SkewConst, c=0.1 | -157.0 ± 8.7 | 198.3 | -0.79 | 5.54 | 2.55 | 135 | 0.114 | 1.29 | +0.21 | -0.83 | 1.59 | 2.12 |
 | (0.1, 0.75) | SymTV, c=0.1 | -129.0 ± 10.2 | 233.1 | -0.55 | 6.61 | 5.18 | 133 | 0.119 | 1.25 | +0.25 | -0.57 | 1.68 | 1.82 |
 | (0.1, 0.75) | Symmetric, c=0.1 | -136.6 ± 10.3 | 235.8 | -0.58 | 6.61 | 5.34 | 139 | 0.125 | 1.21 | +0.24 | -0.57 | 1.69 | 1.78 |
 | (0.1, 0.9) | NaiveTouch | -765.6 ± 24.9 | 568.4 | -1.35 | 6.73 | 5.70 | 325 | 0.296 | 0.75 | -0.10 | -1.90 | 1.15 | 2.65 |
 | (0.1, 0.9) | A&S, c=0.1 | -1046.6 ± 29.1 | 663.0 | -1.58 | 7.03 | 3.63 | 194 | 0.171 | 1.29 | -0.22 | -4.16 | 2.02 | 5.45 |
+| (0.1, 0.9) | SkewConst, c=0.1 | -1050.3 ± 29.1 | 664.0 | -1.58 | 6.78 | 3.60 | 196 | 0.172 | 1.29 | -0.22 | -4.15 | 2.01 | 5.44 |
 | (0.1, 0.9) | SymTV, c=0.1 | -899.9 ± 27.4 | 625.7 | -1.44 | 7.25 | 6.11 | 180 | 0.172 | 1.24 | -0.21 | -3.75 | 2.18 | 4.99 |
 | (0.1, 0.9) | Symmetric, c=0.1 | -920.9 ± 27.8 | 633.5 | -1.45 | 7.25 | 6.19 | 187 | 0.179 | 1.20 | -0.21 | -3.69 | 2.19 | 4.89 |
 
@@ -186,70 +201,105 @@
 | (0.1, 0.9) | A&S, c=0.1 | NaiveTouch | -281.0 [-293.4, -268.1] | 1.167 [1.142, 1.190] | 1.044 [1.028, 1.059] | -2.07 [-2.10, -2.03] | -0.231 [-0.264, -0.198] | -2.26 [-2.32, -2.20] |
 | (0.1, 0.9) | Symmetric, c=0.1 | NaiveTouch | -155.2 [-164.5, -146.0] | 1.115 [1.094, 1.134] | 1.077 [1.060, 1.092] | +0.50 [+0.46, +0.54] | -0.106 [-0.133, -0.081] | -1.79 [-1.85, -1.73] |
 
-**Table 7. Inventory skew and spread term, separated** (simulated; same runs and bootstrap as Tables 4 and 6). SymTV quotes the mid ∓ half of A&S's spread at the current time with no skew, so A&S vs SymTV isolates the inventory skew and SymTV vs Symmetric the time-varying spread term. The SD ratios multiply exactly: the product row equals the A&S vs Symmetric row. Skew share = ln(SD PnL ratio A&S/SymTV) / ln(SD PnL ratio A&S/Symmetric), a point estimate with no interval.
+**Table 7a. Inventory skew and time-varying spread term: 2 x 2 design, both orders** (simulated; same runs and bootstrap as Tables 4 and 6). Four arms at the same γ: A&S (skew and time-varying spread), SkewConst (A&S's skew, Symmetric's constant spread), SymTV (A&S's time-varying spread, no skew) and Symmetric (neither). Spread first adds the time-varying spread without the skew (SymTV vs Symmetric), then the skew (A&S vs SymTV); skew first adds the skew without the time-varying spread (SkewConst vs Symmetric), then the spread term (A&S vs SkewConst). The spread-first order was pre-specified; the SkewConst arm and the skew-first order were added after an independent review (post hoc). Within each order the two SD ratios multiply to the A&S vs Symmetric ratio; that is an algebraic identity (a/c = a/b × b/c), checked by make_tables.py only to confirm that the pairs use the same SDs, not evidence about the decomposition.
 
-| Run | c | A vs B | Mean PnL A − B (USD) | SD PnL A / B | SD q_T A / B | Mean/SD A − B | Skew share of ln(SD PnL ratio) |
-|---|---|---|---|---|---|---|---|
-| uninformed | 0.01 | A&S vs Symmetric (both effects) | -1.6 [-2.3, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.007, +0.015] | - |
-| uninformed | 0.01 | A&S vs SymTV (skew) | -1.6 [-2.4, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.008, +0.015] | - |
-| uninformed | 0.01 | SymTV vs Symmetric (spread term) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | - |
-| uninformed | 0.01 | product of the two factors | - | 0.952 | 0.992 | - | 1.00 |
-| uninformed | 0.03 | A&S vs Symmetric (both effects) | -4.9 [-6.8, -2.9] | 0.709 [0.686, 0.733] | 0.883 [0.868, 0.896] | +0.124 [+0.087, +0.163] | - |
-| uninformed | 0.03 | A&S vs SymTV (skew) | -4.9 [-6.9, -3.1] | 0.709 [0.684, 0.731] | 0.883 [0.868, 0.897] | +0.124 [+0.087, +0.160] | - |
-| uninformed | 0.03 | SymTV vs Symmetric (spread term) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | - |
-| uninformed | 0.03 | product of the two factors | - | 0.709 | 0.883 | - | 1.00 |
-| uninformed | 0.1 | A&S vs Symmetric (both effects) | -9.0 [-11.8, -6.2] | 0.480 [0.460, 0.503] | 0.690 [0.673, 0.708] | +0.321 [+0.261, +0.379] | - |
-| uninformed | 0.1 | A&S vs SymTV (skew) | -7.9 [-10.5, -5.1] | 0.495 [0.472, 0.519] | 0.688 [0.670, 0.705] | +0.319 [+0.262, +0.381] | - |
-| uninformed | 0.1 | SymTV vs Symmetric (spread term) | -1.2 [-2.5, +0.1] | 0.968 [0.950, 0.987] | 1.003 [0.995, 1.010] | +0.002 [-0.021, +0.022] | - |
-| uninformed | 0.1 | product of the two factors | - | 0.480 | 0.690 | - | 0.96 |
-| uninformed | 0.3 | A&S vs Symmetric (both effects) | -6.3 [-8.9, -3.5] | 0.350 [0.332, 0.370] | 0.561 [0.543, 0.580] | +0.638 [+0.559, +0.713] | - |
-| uninformed | 0.3 | A&S vs SymTV (skew) | -8.8 [-11.7, -5.9] | 0.350 [0.332, 0.367] | 0.547 [0.531, 0.564] | +0.601 [+0.528, +0.679] | - |
-| uninformed | 0.3 | SymTV vs Symmetric (spread term) | +2.5 [+1.7, +3.4] | 1.001 [0.985, 1.016] | 1.026 [1.008, 1.042] | +0.037 [+0.021, +0.051] | - |
-| uninformed | 0.3 | product of the two factors | - | 0.350 | 0.561 | - | 1.00 |
-| uninformed | 1 | A&S vs Symmetric (both effects) | -14.9 [-18.0, -11.8] | 0.217 [0.205, 0.229] | 0.394 [0.381, 0.408] | +0.752 [+0.662, +0.832] | - |
-| uninformed | 1 | A&S vs SymTV (skew) | -9.6 [-11.9, -7.0] | 0.259 [0.245, 0.272] | 0.406 [0.392, 0.420] | +0.751 [+0.674, +0.835] | - |
-| uninformed | 1 | SymTV vs Symmetric (spread term) | -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] | 0.969 [0.951, 0.987] | +0.002 [-0.039, +0.042] | - |
-| uninformed | 1 | product of the two factors | - | 0.217 | 0.394 | - | 0.88 |
-| stress (0, -) | 0.1 | A&S vs Symmetric (both effects) | -10.7 [-13.5, -8.0] | 0.476 [0.456, 0.497] | 0.688 [0.671, 0.707] | +0.304 [+0.245, +0.358] | - |
-| stress (0, -) | 0.1 | A&S vs SymTV (skew) | -8.6 [-11.1, -5.9] | 0.489 [0.467, 0.510] | 0.693 [0.674, 0.711] | +0.318 [+0.263, +0.373] | - |
-| stress (0, -) | 0.1 | SymTV vs Symmetric (spread term) | -2.2 [-3.7, -0.7] | 0.974 [0.955, 0.996] | 0.993 [0.984, 1.003] | -0.014 [-0.039, +0.009] | - |
-| stress (0, -) | 0.1 | product of the two factors | - | 0.476 | 0.688 | - | 0.96 |
-| stress (0.01, 0.5) | 0.1 | A&S vs Symmetric (both effects) | -10.3 [-13.1, -7.5] | 0.479 [0.459, 0.500] | 0.701 [0.684, 0.719] | +0.280 [+0.226, +0.335] | - |
-| stress (0.01, 0.5) | 0.1 | A&S vs SymTV (skew) | -8.3 [-11.1, -5.6] | 0.487 [0.465, 0.510] | 0.706 [0.687, 0.725] | +0.296 [+0.238, +0.350] | - |
-| stress (0.01, 0.5) | 0.1 | SymTV vs Symmetric (spread term) | -2.0 [-3.5, -0.5] | 0.983 [0.962, 1.002] | 0.994 [0.985, 1.003] | -0.016 [-0.039, +0.007] | - |
-| stress (0.01, 0.5) | 0.1 | product of the two factors | - | 0.479 | 0.701 | - | 0.98 |
-| stress (0.01, 0.75) | 0.1 | A&S vs Symmetric (both effects) | -11.0 [-14.3, -7.9] | 0.662 [0.619, 0.700] | 0.727 [0.710, 0.745] | -0.038 [-0.075, +0.003] | - |
-| stress (0.01, 0.75) | 0.1 | A&S vs SymTV (skew) | -9.2 [-12.3, -6.4] | 0.673 [0.637, 0.709] | 0.731 [0.713, 0.749] | -0.025 [-0.060, +0.012] | - |
-| stress (0.01, 0.75) | 0.1 | SymTV vs Symmetric (spread term) | -1.8 [-3.6, -0.2] | 0.983 [0.967, 0.998] | 0.994 [0.986, 1.003] | -0.014 [-0.031, +0.003] | - |
-| stress (0.01, 0.75) | 0.1 | product of the two factors | - | 0.662 | 0.727 | - | 0.96 |
-| stress (0.01, 0.9) | 0.1 | A&S vs Symmetric (both effects) | -19.1 [-23.2, -14.7] | 0.985 [0.960, 1.008] | 0.784 [0.769, 0.800] | -0.083 [-0.100, -0.067] | - |
-| stress (0.01, 0.9) | 0.1 | A&S vs SymTV (skew) | -18.8 [-22.8, -14.9] | 1.002 [0.980, 1.026] | 0.785 [0.770, 0.803] | -0.076 [-0.092, -0.062] | - |
-| stress (0.01, 0.9) | 0.1 | SymTV vs Symmetric (spread term) | -0.3 [-2.1, +1.5] | 0.983 [0.974, 0.991] | 0.998 [0.992, 1.005] | -0.007 [-0.014, +0.001] | - |
-| stress (0.01, 0.9) | 0.1 | product of the two factors | - | 0.985 | 0.784 | - | -0.15 |
-| stress (0.03, 0.5) | 0.1 | A&S vs Symmetric (both effects) | -9.8 [-12.8, -6.8] | 0.480 [0.458, 0.502] | 0.721 [0.703, 0.741] | +0.253 [+0.202, +0.306] | - |
-| stress (0.03, 0.5) | 0.1 | A&S vs SymTV (skew) | -7.8 [-10.4, -4.8] | 0.490 [0.468, 0.515] | 0.726 [0.709, 0.744] | +0.268 [+0.217, +0.319] | - |
-| stress (0.03, 0.5) | 0.1 | SymTV vs Symmetric (spread term) | -2.0 [-3.5, -0.4] | 0.981 [0.962, 1.000] | 0.993 [0.985, 1.001] | -0.014 [-0.036, +0.007] | - |
-| stress (0.03, 0.5) | 0.1 | product of the two factors | - | 0.480 | 0.721 | - | 0.97 |
-| stress (0.03, 0.75) | 0.1 | A&S vs Symmetric (both effects) | -11.1 [-15.1, -7.4] | 0.798 [0.766, 0.830] | 0.793 [0.777, 0.810] | -0.124 [-0.151, -0.098] | - |
-| stress (0.03, 0.75) | 0.1 | A&S vs SymTV (skew) | -10.8 [-14.8, -7.0] | 0.815 [0.782, 0.846] | 0.792 [0.776, 0.809] | -0.120 [-0.148, -0.093] | - |
-| stress (0.03, 0.75) | 0.1 | SymTV vs Symmetric (spread term) | -0.3 [-2.3, +1.6] | 0.979 [0.965, 0.992] | 1.001 [0.996, 1.007] | -0.004 [-0.018, +0.009] | - |
-| stress (0.03, 0.75) | 0.1 | product of the two factors | - | 0.798 | 0.793 | - | 0.90 |
-| stress (0.03, 0.9) | 0.1 | A&S vs Symmetric (both effects) | -41.0 [-46.6, -35.1] | 1.052 [1.033, 1.071] | 0.862 [0.849, 0.875] | -0.068 [-0.086, -0.052] | - |
-| stress (0.03, 0.9) | 0.1 | A&S vs SymTV (skew) | -47.3 [-53.3, -41.2] | 1.062 [1.042, 1.082] | 0.864 [0.851, 0.877] | -0.079 [-0.096, -0.062] | - |
-| stress (0.03, 0.9) | 0.1 | SymTV vs Symmetric (spread term) | +6.3 [+4.2, +8.5] | 0.991 [0.985, 0.997] | 0.997 [0.994, 1.000] | +0.011 [+0.004, +0.017] | - |
-| stress (0.03, 0.9) | 0.1 | product of the two factors | - | 1.052 | 0.862 | - | 1.18 |
-| stress (0.1, 0.5) | 0.1 | A&S vs Symmetric (both effects) | -11.4 [-14.9, -8.0] | 0.525 [0.504, 0.548] | 0.770 [0.752, 0.788] | +0.099 [+0.057, +0.143] | - |
-| stress (0.1, 0.5) | 0.1 | A&S vs SymTV (skew) | -10.6 [-14.1, -7.1] | 0.531 [0.508, 0.553] | 0.766 [0.749, 0.784] | +0.104 [+0.062, +0.148] | - |
-| stress (0.1, 0.5) | 0.1 | SymTV vs Symmetric (spread term) | -0.8 [-2.7, +1.0] | 0.989 [0.969, 1.010] | 1.005 [0.997, 1.012] | -0.004 [-0.026, +0.016] | - |
-| stress (0.1, 0.5) | 0.1 | product of the two factors | - | 0.525 | 0.770 | - | 0.98 |
-| stress (0.1, 0.75) | 0.1 | A&S vs Symmetric (both effects) | -18.4 [-24.1, -12.8] | 0.842 [0.816, 0.867] | 0.895 [0.881, 0.909] | -0.202 [-0.231, -0.175] | - |
-| stress (0.1, 0.75) | 0.1 | A&S vs SymTV (skew) | -26.0 [-31.4, -20.2] | 0.852 [0.829, 0.876] | 0.895 [0.882, 0.908] | -0.227 [-0.255, -0.200] | - |
-| stress (0.1, 0.75) | 0.1 | SymTV vs Symmetric (spread term) | +7.6 [+5.4, +10.0] | 0.988 [0.980, 0.999] | 1.000 [0.998, 1.003] | +0.026 [+0.015, +0.037] | - |
-| stress (0.1, 0.75) | 0.1 | product of the two factors | - | 0.842 | 0.895 | - | 0.93 |
-| stress (0.1, 0.9) | 0.1 | A&S vs Symmetric (both effects) | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] | 0.970 [0.962, 0.977] | -0.125 [-0.149, -0.101] | - |
-| stress (0.1, 0.9) | 0.1 | A&S vs SymTV (skew) | -146.8 [-156.9, -136.9] | 1.060 [1.044, 1.076] | 0.970 [0.962, 0.977] | -0.140 [-0.164, -0.116] | - |
-| stress (0.1, 0.9) | 0.1 | SymTV vs Symmetric (spread term) | +21.0 [+18.2, +24.1] | 0.988 [0.982, 0.993] | 1.000 [0.999, 1.001] | +0.015 [+0.007, +0.024] | - |
-| stress (0.1, 0.9) | 0.1 | product of the two factors | - | 1.047 | 0.970 | - | 1.27 |
+| Run | c | A vs B | Mean PnL A − B (USD) | SD PnL A / B | SD q_T A / B | Mean/SD A − B |
+|---|---|---|---|---|---|---|
+| uninformed | 0.01 | A&S vs Symmetric (both) | -1.6 [-2.3, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.007, +0.015] |
+| uninformed | 0.01 | spread first: SymTV vs Symmetric (spread term, without skew) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
+| uninformed | 0.01 | then A&S vs SymTV (skew, with the time-varying spread) | -1.6 [-2.4, -1.0] | 0.952 [0.942, 0.962] | 0.992 [0.988, 0.997] | +0.004 [-0.008, +0.015] |
+| uninformed | 0.01 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -1.5 [-2.2, -0.8] | 0.958 [0.947, 0.968] | 0.992 [0.988, 0.996] | +0.003 [-0.008, +0.015] |
+| uninformed | 0.01 | then A&S vs SkewConst (spread term, with skew) | -0.1 [-0.3, +0.1] | 0.994 [0.991, 0.997] | 1.000 [0.999, 1.001] | +0.001 [-0.002, +0.004] |
+| uninformed | 0.03 | A&S vs Symmetric (both) | -4.9 [-6.8, -2.9] | 0.709 [0.686, 0.733] | 0.883 [0.868, 0.896] | +0.124 [+0.087, +0.163] |
+| uninformed | 0.03 | spread first: SymTV vs Symmetric (spread term, without skew) | +0.0 [+0.0, +0.0] | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
+| uninformed | 0.03 | then A&S vs SymTV (skew, with the time-varying spread) | -4.9 [-6.9, -3.1] | 0.709 [0.684, 0.731] | 0.883 [0.868, 0.897] | +0.124 [+0.087, +0.160] |
+| uninformed | 0.03 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -4.8 [-6.8, -2.9] | 0.705 [0.682, 0.727] | 0.873 [0.859, 0.887] | +0.129 [+0.091, +0.169] |
+| uninformed | 0.03 | then A&S vs SkewConst (spread term, with skew) | -0.1 [-0.5, +0.3] | 1.005 [0.997, 1.014] | 1.011 [1.007, 1.015] | -0.005 [-0.016, +0.005] |
+| uninformed | 0.1 | A&S vs Symmetric (both) | -9.0 [-11.8, -6.2] | 0.480 [0.460, 0.503] | 0.690 [0.673, 0.708] | +0.321 [+0.261, +0.379] |
+| uninformed | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -1.2 [-2.5, +0.1] | 0.968 [0.950, 0.987] | 1.003 [0.995, 1.010] | +0.002 [-0.021, +0.022] |
+| uninformed | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -7.9 [-10.5, -5.1] | 0.495 [0.472, 0.519] | 0.688 [0.670, 0.705] | +0.319 [+0.262, +0.381] |
+| uninformed | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -9.5 [-12.3, -6.7] | 0.462 [0.440, 0.483] | 0.611 [0.594, 0.627] | +0.339 [+0.280, +0.404] |
+| uninformed | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.5 [+0.1, +1.0] | 1.038 [1.025, 1.054] | 1.129 [1.116, 1.143] | -0.017 [-0.036, -0.001] |
+| uninformed | 0.3 | A&S vs Symmetric (both) | -6.3 [-8.9, -3.5] | 0.350 [0.332, 0.370] | 0.561 [0.543, 0.580] | +0.638 [+0.559, +0.713] |
+| uninformed | 0.3 | spread first: SymTV vs Symmetric (spread term, without skew) | +2.5 [+1.7, +3.4] | 1.001 [0.985, 1.016] | 1.026 [1.008, 1.042] | +0.037 [+0.021, +0.051] |
+| uninformed | 0.3 | then A&S vs SymTV (skew, with the time-varying spread) | -8.8 [-11.7, -5.9] | 0.350 [0.332, 0.367] | 0.547 [0.531, 0.564] | +0.601 [+0.528, +0.679] |
+| uninformed | 0.3 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -7.8 [-10.6, -4.9] | 0.342 [0.324, 0.361] | 0.501 [0.485, 0.517] | +0.598 [+0.526, +0.675] |
+| uninformed | 0.3 | then A&S vs SkewConst (spread term, with skew) | +1.5 [+1.1, +1.9] | 1.022 [0.999, 1.044] | 1.120 [1.095, 1.144] | +0.040 [+0.010, +0.072] |
+| uninformed | 1 | A&S vs Symmetric (both) | -14.9 [-18.0, -11.8] | 0.217 [0.205, 0.229] | 0.394 [0.381, 0.408] | +0.752 [+0.662, +0.832] |
+| uninformed | 1 | spread first: SymTV vs Symmetric (spread term, without skew) | -5.3 [-7.4, -3.2] | 0.837 [0.807, 0.867] | 0.969 [0.951, 0.987] | +0.002 [-0.039, +0.042] |
+| uninformed | 1 | then A&S vs SymTV (skew, with the time-varying spread) | -9.6 [-11.9, -7.0] | 0.259 [0.245, 0.272] | 0.406 [0.392, 0.420] | +0.751 [+0.674, +0.835] |
+| uninformed | 1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -16.7 [-19.9, -13.8] | 0.216 [0.204, 0.229] | 0.315 [0.304, 0.326] | +0.633 [+0.554, +0.708] |
+| uninformed | 1 | then A&S vs SkewConst (spread term, with skew) | +1.8 [+1.4, +2.3] | 1.004 [0.971, 1.035] | 1.251 [1.215, 1.286] | +0.119 [+0.068, +0.172] |
+| stress (0, -) | 0.1 | A&S vs Symmetric (both) | -10.7 [-13.5, -8.0] | 0.476 [0.456, 0.497] | 0.688 [0.671, 0.707] | +0.304 [+0.245, +0.358] |
+| stress (0, -) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -2.2 [-3.7, -0.7] | 0.974 [0.955, 0.996] | 0.993 [0.984, 1.003] | -0.014 [-0.039, +0.009] |
+| stress (0, -) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -8.6 [-11.1, -5.9] | 0.489 [0.467, 0.510] | 0.693 [0.674, 0.711] | +0.318 [+0.263, +0.373] |
+| stress (0, -) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -11.6 [-14.6, -8.7] | 0.458 [0.439, 0.479] | 0.609 [0.593, 0.626] | +0.312 [+0.255, +0.372] |
+| stress (0, -) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.9 [+0.5, +1.3] | 1.039 [1.024, 1.053] | 1.129 [1.114, 1.142] | -0.008 [-0.027, +0.010] |
+| stress (0.01, 0.5) | 0.1 | A&S vs Symmetric (both) | -10.3 [-13.1, -7.5] | 0.479 [0.459, 0.500] | 0.701 [0.684, 0.719] | +0.280 [+0.226, +0.335] |
+| stress (0.01, 0.5) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -2.0 [-3.5, -0.5] | 0.983 [0.962, 1.002] | 0.994 [0.985, 1.003] | -0.016 [-0.039, +0.007] |
+| stress (0.01, 0.5) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -8.3 [-11.1, -5.6] | 0.487 [0.465, 0.510] | 0.706 [0.687, 0.725] | +0.296 [+0.238, +0.350] |
+| stress (0.01, 0.5) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -11.2 [-14.1, -8.4] | 0.465 [0.443, 0.487] | 0.625 [0.607, 0.642] | +0.278 [+0.220, +0.342] |
+| stress (0.01, 0.5) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.9 [+0.5, +1.4] | 1.030 [1.017, 1.045] | 1.122 [1.110, 1.137] | +0.001 [-0.016, +0.017] |
+| stress (0.01, 0.75) | 0.1 | A&S vs Symmetric (both) | -11.0 [-14.3, -7.9] | 0.662 [0.619, 0.700] | 0.727 [0.710, 0.745] | -0.038 [-0.075, +0.003] |
+| stress (0.01, 0.75) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -1.8 [-3.6, -0.2] | 0.983 [0.967, 0.998] | 0.994 [0.986, 1.003] | -0.014 [-0.031, +0.003] |
+| stress (0.01, 0.75) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -9.2 [-12.3, -6.4] | 0.673 [0.637, 0.709] | 0.731 [0.713, 0.749] | -0.025 [-0.060, +0.012] |
+| stress (0.01, 0.75) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -12.0 [-15.1, -8.8] | 0.654 [0.614, 0.691] | 0.653 [0.635, 0.669] | -0.050 [-0.086, -0.013] |
+| stress (0.01, 0.75) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +1.0 [+0.5, +1.5] | 1.012 [0.999, 1.025] | 1.114 [1.101, 1.128] | +0.012 [+0.004, +0.020] |
+| stress (0.01, 0.9) | 0.1 | A&S vs Symmetric (both) | -19.1 [-23.2, -14.7] | 0.985 [0.960, 1.008] | 0.784 [0.769, 0.800] | -0.083 [-0.100, -0.067] |
+| stress (0.01, 0.9) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -0.3 [-2.1, +1.5] | 0.983 [0.974, 0.991] | 0.998 [0.992, 1.005] | -0.007 [-0.014, +0.001] |
+| stress (0.01, 0.9) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -18.8 [-22.8, -14.9] | 1.002 [0.980, 1.026] | 0.785 [0.770, 0.803] | -0.076 [-0.092, -0.062] |
+| stress (0.01, 0.9) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -19.5 [-23.7, -15.6] | 0.985 [0.961, 1.009] | 0.722 [0.704, 0.738] | -0.085 [-0.101, -0.069] |
+| stress (0.01, 0.9) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.4 [-0.3, +1.1] | 1.000 [0.995, 1.005] | 1.087 [1.077, 1.097] | +0.002 [-0.001, +0.004] |
+| stress (0.03, 0.5) | 0.1 | A&S vs Symmetric (both) | -9.8 [-12.8, -6.8] | 0.480 [0.458, 0.502] | 0.721 [0.703, 0.741] | +0.253 [+0.202, +0.306] |
+| stress (0.03, 0.5) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -2.0 [-3.5, -0.4] | 0.981 [0.962, 1.000] | 0.993 [0.985, 1.001] | -0.014 [-0.036, +0.007] |
+| stress (0.03, 0.5) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -7.8 [-10.4, -4.8] | 0.490 [0.468, 0.515] | 0.726 [0.709, 0.744] | +0.268 [+0.217, +0.319] |
+| stress (0.03, 0.5) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -10.8 [-13.9, -7.8] | 0.466 [0.445, 0.489] | 0.638 [0.622, 0.656] | +0.249 [+0.196, +0.306] |
+| stress (0.03, 0.5) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +1.0 [+0.5, +1.5] | 1.030 [1.016, 1.042] | 1.130 [1.117, 1.144] | +0.004 [-0.012, +0.019] |
+| stress (0.03, 0.75) | 0.1 | A&S vs Symmetric (both) | -11.1 [-15.1, -7.4] | 0.798 [0.766, 0.830] | 0.793 [0.777, 0.810] | -0.124 [-0.151, -0.098] |
+| stress (0.03, 0.75) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -0.3 [-2.3, +1.6] | 0.979 [0.965, 0.992] | 1.001 [0.996, 1.007] | -0.004 [-0.018, +0.009] |
+| stress (0.03, 0.75) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -10.8 [-14.8, -7.0] | 0.815 [0.782, 0.846] | 0.792 [0.776, 0.809] | -0.120 [-0.148, -0.093] |
+| stress (0.03, 0.75) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -12.1 [-16.2, -8.1] | 0.795 [0.760, 0.823] | 0.728 [0.710, 0.746] | -0.134 [-0.162, -0.106] |
+| stress (0.03, 0.75) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +1.0 [+0.4, +1.7] | 1.004 [0.995, 1.013] | 1.090 [1.079, 1.102] | +0.010 [+0.005, +0.015] |
+| stress (0.03, 0.9) | 0.1 | A&S vs Symmetric (both) | -41.0 [-46.6, -35.1] | 1.052 [1.033, 1.071] | 0.862 [0.849, 0.875] | -0.068 [-0.086, -0.052] |
+| stress (0.03, 0.9) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | +6.3 [+4.2, +8.5] | 0.991 [0.985, 0.997] | 0.997 [0.994, 1.000] | +0.011 [+0.004, +0.017] |
+| stress (0.03, 0.9) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -47.3 [-53.3, -41.2] | 1.062 [1.042, 1.082] | 0.864 [0.851, 0.877] | -0.079 [-0.096, -0.062] |
+| stress (0.03, 0.9) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -41.8 [-47.9, -35.8] | 1.052 [1.034, 1.072] | 0.812 [0.798, 0.827] | -0.070 [-0.089, -0.054] |
+| stress (0.03, 0.9) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +0.8 [-0.2, +1.8] | 1.000 [0.997, 1.003] | 1.061 [1.053, 1.069] | +0.002 [-0.001, +0.005] |
+| stress (0.1, 0.5) | 0.1 | A&S vs Symmetric (both) | -11.4 [-14.9, -8.0] | 0.525 [0.504, 0.548] | 0.770 [0.752, 0.788] | +0.099 [+0.057, +0.143] |
+| stress (0.1, 0.5) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | -0.8 [-2.7, +1.0] | 0.989 [0.969, 1.010] | 1.005 [0.997, 1.012] | -0.004 [-0.026, +0.016] |
+| stress (0.1, 0.5) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -10.6 [-14.1, -7.1] | 0.531 [0.508, 0.553] | 0.766 [0.749, 0.784] | +0.104 [+0.062, +0.148] |
+| stress (0.1, 0.5) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -12.9 [-16.7, -9.2] | 0.509 [0.488, 0.530] | 0.682 [0.664, 0.700] | +0.086 [+0.041, +0.130] |
+| stress (0.1, 0.5) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +1.5 [+1.0, +2.1] | 1.032 [1.021, 1.044] | 1.128 [1.115, 1.141] | +0.014 [+0.002, +0.025] |
+| stress (0.1, 0.75) | 0.1 | A&S vs Symmetric (both) | -18.4 [-24.1, -12.8] | 0.842 [0.816, 0.867] | 0.895 [0.881, 0.909] | -0.202 [-0.231, -0.175] |
+| stress (0.1, 0.75) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | +7.6 [+5.4, +10.0] | 0.988 [0.980, 0.999] | 1.000 [0.998, 1.003] | +0.026 [+0.015, +0.037] |
+| stress (0.1, 0.75) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -26.0 [-31.4, -20.2] | 0.852 [0.829, 0.876] | 0.895 [0.882, 0.908] | -0.227 [-0.255, -0.200] |
+| stress (0.1, 0.75) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -20.4 [-26.4, -14.3] | 0.841 [0.817, 0.865] | 0.839 [0.825, 0.855] | -0.213 [-0.241, -0.186] |
+| stress (0.1, 0.75) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +2.0 [+1.0, +3.0] | 1.001 [0.995, 1.007] | 1.067 [1.059, 1.076] | +0.011 [+0.005, +0.017] |
+| stress (0.1, 0.9) | 0.1 | A&S vs Symmetric (both) | -125.8 [-134.7, -115.8] | 1.047 [1.031, 1.063] | 0.970 [0.962, 0.977] | -0.125 [-0.149, -0.101] |
+| stress (0.1, 0.9) | 0.1 | spread first: SymTV vs Symmetric (spread term, without skew) | +21.0 [+18.2, +24.1] | 0.988 [0.982, 0.993] | 1.000 [0.999, 1.001] | +0.015 [+0.007, +0.024] |
+| stress (0.1, 0.9) | 0.1 | then A&S vs SymTV (skew, with the time-varying spread) | -146.8 [-156.9, -136.9] | 1.060 [1.044, 1.076] | 0.970 [0.962, 0.977] | -0.140 [-0.164, -0.116] |
+| stress (0.1, 0.9) | 0.1 | skew first: SkewConst vs Symmetric (skew, without the time-varying spread) | -129.4 [-139.2, -120.4] | 1.048 [1.032, 1.065] | 0.935 [0.927, 0.943] | -0.128 [-0.153, -0.104] |
+| stress (0.1, 0.9) | 0.1 | then A&S vs SkewConst (spread term, with skew) | +3.6 [+1.8, +5.2] | 0.999 [0.996, 1.001] | 1.037 [1.032, 1.043] | +0.003 [-0.002, +0.007] |
+
+**Table 7b. Skew shares and interaction** (same cells). Skew share of ln(SD PnL ratio A&S/Symmetric): spread first ln(A&S/SymTV) / ln(A&S/Symmetric), skew first ln(SkewConst/Symmetric) / ln(A&S/Symmetric), and their average (the two-way Shapley share); point estimates, no interval. A share depends on the order whenever the interaction is not 1. Interaction: paired percentile bootstrap (1000 replicates) with the same resampled episodes for all four arms; 1 (0 for the mean) means the spread term has the same effect with and without the skew. Where SymTV and Symmetric quote identically (the time variation never crosses a tick), the spread-first share and the average are shown as n/a.
+
+| Run | c | SD PnL A&S / Symmetric | Skew share, spread first | Skew share, skew first | Skew share, average of the two orders (Shapley) | Interaction, SD PnL: (A&S/SkewConst) / (SymTV/Symmetric) | Interaction, SD q_T | Interaction, mean PnL (USD): (A&S − SkewConst) − (SymTV − Symmetric) |
+|---|---|---|---|---|---|---|---|---|
+| uninformed | 0.01 | 0.952 | n/a (SymTV = Symmetric) | 0.88 | n/a (SymTV = Symmetric) | 0.994 [0.991, 0.997] | 1.000 [0.999, 1.001] | -0.1 [-0.3, +0.1] |
+| uninformed | 0.03 | 0.709 | n/a (SymTV = Symmetric) | 1.02 | n/a (SymTV = Symmetric) | 1.005 [0.997, 1.014] | 1.011 [1.007, 1.015] | -0.1 [-0.5, +0.3] |
+| uninformed | 0.1 | 0.480 | 0.96 | 1.05 | 1.00 | 1.073 [1.049, 1.097] | 1.126 [1.110, 1.144] | +1.7 [+0.4, +3.0] |
+| uninformed | 0.3 | 0.350 | 1.00 | 1.02 | 1.01 | 1.021 [0.997, 1.048] | 1.092 [1.066, 1.118] | -1.0 [-1.9, -0.2] |
+| uninformed | 1 | 0.217 | 0.88 | 1.00 | 0.94 | 1.199 [1.145, 1.259] | 1.290 [1.250, 1.331] | +7.2 [+5.2, +9.3] |
+| stress (0, -) | 0.1 | 0.476 | 0.96 | 1.05 | 1.01 | 1.067 [1.042, 1.093] | 1.137 [1.120, 1.155] | +3.1 [+1.6, +4.6] |
+| stress (0.01, 0.5) | 0.1 | 0.479 | 0.98 | 1.04 | 1.01 | 1.048 [1.023, 1.075] | 1.130 [1.112, 1.146] | +2.9 [+1.4, +4.5] |
+| stress (0.01, 0.75) | 0.1 | 0.662 | 0.96 | 1.03 | 0.99 | 1.029 [1.007, 1.052] | 1.120 [1.104, 1.136] | +2.8 [+1.1, +4.5] |
+| stress (0.01, 0.9) | 0.1 | 0.985 | -0.15 | 0.99 | 0.42 | 1.017 [1.009, 1.026] | 1.088 [1.077, 1.101] | +0.7 [-1.2, +2.6] |
+| stress (0.03, 0.5) | 0.1 | 0.480 | 0.97 | 1.04 | 1.01 | 1.050 [1.026, 1.075] | 1.138 [1.120, 1.156] | +3.0 [+1.4, +4.7] |
+| stress (0.03, 0.75) | 0.1 | 0.798 | 0.90 | 1.02 | 0.96 | 1.026 [1.009, 1.043] | 1.088 [1.076, 1.101] | +1.3 [-0.5, +3.3] |
+| stress (0.03, 0.9) | 0.1 | 1.052 | 1.18 | 1.00 | 1.09 | 1.009 [1.002, 1.016] | 1.064 [1.055, 1.073] | -5.5 [-7.7, -3.2] |
+| stress (0.1, 0.5) | 0.1 | 0.525 | 0.98 | 1.05 | 1.02 | 1.043 [1.018, 1.068] | 1.123 [1.107, 1.139] | +2.4 [+0.5, +4.1] |
+| stress (0.1, 0.75) | 0.1 | 0.842 | 0.93 | 1.01 | 0.97 | 1.013 [1.002, 1.024] | 1.067 [1.058, 1.076] | -5.6 [-8.1, -3.1] |
+| stress (0.1, 0.9) | 0.1 | 1.047 | 1.27 | 1.03 | 1.15 | 1.011 [1.005, 1.017] | 1.037 [1.032, 1.043] | -17.4 [-20.7, -14.1] |
 
 **Table 8. Sampling spread of the A&S inputs** (simulated; the calibration run of Table 2a cut into consecutive blocks; each block's k fit uses the δ points of the full fit). Blocks are independent episodes, so SD/√(blocks) is a standard error of the full-run estimate. It measures sampling error only, not the misfit of the exponential at the touch.
 
@@ -273,7 +323,7 @@
 
 **Table 9. Sensitivity to the estimated k and σ** (simulated; 1000 episodes per cell and setting, the first 1000 episodes of the baseline (seed 202) and of the stress run (seed 303), so every setting sees the same episodes). The as, symtv and sym arms get k and σ scaled as shown; γ stays at the value chosen from the unperturbed σ̂, so a perturbation moves both the skew and the spread. Intervals: paired percentile bootstrap (1000 replicates).
 
-| Cell | c | k scale | σ scale | A&S mean PnL (USD) ± 1.96 SE (normal approximation) | A&S SD PnL (USD) | SD PnL A&S / Symmetric | SD PnL A&S / SymTV (skew) | SD PnL SymTV / Symmetric (spread term) | SD q_T A&S / Symmetric | Mean PnL A&S − Symmetric (USD) |
+| Cell | c | k scale | σ scale | A&S mean PnL (USD) ± 1.96 SE (normal approximation) | A&S SD PnL (USD) | SD PnL A&S / Symmetric | SD PnL A&S / SymTV (skew, with the time-varying spread) | SD PnL SymTV / Symmetric (spread term, without skew) | SD q_T A&S / Symmetric | Mean PnL A&S − Symmetric (USD) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | uninformed | 0.1 | ×1 | ×1 | 30.7 ± 2.3 | 37.6 | 0.491 [0.459, 0.522] | 0.508 [0.472, 0.546] | 0.967 [0.941, 0.996] | 0.680 [0.656, 0.705] | -10.5 [-14.1, -6.4] |
 | uninformed | 0.1 | ×0.5 | ×1 | 18.1 ± 2.1 | 34.1 | 0.696 [0.665, 0.726] | 0.696 [0.665, 0.732] | 1.000 [1.000, 1.000] | 0.729 [0.709, 0.749] | -2.4 [-3.9, -0.8] |
@@ -308,13 +358,13 @@
 - Stress cells where every strategy loses money on average: (0.01, 0.9), (0.03, 0.9), (0.1, 0.75), (0.1, 0.9).
 - Stress, A&S against Symmetric (c=0.1): SD q_T ratio 0.688 [0.671, 0.707] without informed flow and 0.970 [0.962, 0.977] at (0.1, 0.9); SD PnL ratio 0.476 [0.456, 0.497] and 1.047 [1.031, 1.063]; mean PnL difference -10.7 [-13.5, -8.0] USD and -125.8 [-134.7, -115.8] USD; mean |q| difference -2.56 [-2.60, -2.52] lots at (0.1, 0.9).
 - Fill count var/mean (1 s bins): A&S 1.11 to 2.02, NaiveTouch 0.88 to 1.15 across the stress grid; spread captured per fill by A&S stays between 1.29 and 1.32 ticks.
-- Decomposition, uninformed, c=0.1: SD PnL ratio A&S/Symmetric 0.480 [0.460, 0.503] = A&S/SymTV (skew) 0.495 [0.472, 0.519] × SymTV/Symmetric (spread term) 0.968 [0.950, 0.987]; skew share 0.96. SD q_T ratio A&S/SymTV 0.688 [0.670, 0.705], SymTV/Symmetric 1.003 [0.995, 1.010].
-- Decomposition, uninformed, c=1: SD PnL ratio A&S/Symmetric 0.217 [0.205, 0.229] = A&S/SymTV (skew) 0.259 [0.245, 0.272] × SymTV/Symmetric (spread term) 0.837 [0.807, 0.867]; skew share 0.88. SD q_T ratio A&S/SymTV 0.406 [0.392, 0.420], SymTV/Symmetric 0.969 [0.951, 0.987].
-- Decomposition, stress (0, -), c=0.1: SD PnL ratio A&S/Symmetric 0.476 [0.456, 0.497] = A&S/SymTV (skew) 0.489 [0.467, 0.510] × SymTV/Symmetric (spread term) 0.974 [0.955, 0.996]; skew share 0.96. SD q_T ratio A&S/SymTV 0.693 [0.674, 0.711], SymTV/Symmetric 0.993 [0.984, 1.003].
-- Decomposition, stress (0.1, 0.9), c=0.1: SD PnL ratio A&S/Symmetric 1.047 [1.031, 1.063] = A&S/SymTV (skew) 1.060 [1.044, 1.076] × SymTV/Symmetric (spread term) 0.988 [0.982, 0.993]; skew share 1.27. SD q_T ratio A&S/SymTV 0.970 [0.962, 0.977], SymTV/Symmetric 1.000 [0.999, 1.001].
+- Decomposition, uninformed, c=0.1: SD PnL ratio A&S/Symmetric 0.480 [0.460, 0.503]. Spread first: SymTV/Symmetric (spread term, without skew) 0.968 [0.950, 0.987], then A&S/SymTV (skew, with the time-varying spread) 0.495 [0.472, 0.519]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.462 [0.440, 0.483], then A&S/SkewConst (spread term, with skew) 1.038 [1.025, 1.054]. Skew share: 0.96 spread first, 1.05 skew first, 1.00 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.073 [1.049, 1.097], SD q_T 1.126 [1.110, 1.144], mean PnL +1.7 [+0.4, +3.0] USD. SD q_T ratio: SymTV/Symmetric 1.003 [0.995, 1.010], A&S/SkewConst 1.129 [1.116, 1.143], SkewConst/Symmetric 0.611 [0.594, 0.627]. Mean PnL difference (USD): SymTV − Symmetric -1.2 [-2.5, +0.1], A&S − SkewConst +0.5 [+0.1, +1.0], SkewConst − Symmetric -9.5 [-12.3, -6.7].
+- Decomposition, uninformed, c=1: SD PnL ratio A&S/Symmetric 0.217 [0.205, 0.229]. Spread first: SymTV/Symmetric (spread term, without skew) 0.837 [0.807, 0.867], then A&S/SymTV (skew, with the time-varying spread) 0.259 [0.245, 0.272]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.216 [0.204, 0.229], then A&S/SkewConst (spread term, with skew) 1.004 [0.971, 1.035]. Skew share: 0.88 spread first, 1.00 skew first, 0.94 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.199 [1.145, 1.259], SD q_T 1.290 [1.250, 1.331], mean PnL +7.2 [+5.2, +9.3] USD. SD q_T ratio: SymTV/Symmetric 0.969 [0.951, 0.987], A&S/SkewConst 1.251 [1.215, 1.286], SkewConst/Symmetric 0.315 [0.304, 0.326]. Mean PnL difference (USD): SymTV − Symmetric -5.3 [-7.4, -3.2], A&S − SkewConst +1.8 [+1.4, +2.3], SkewConst − Symmetric -16.7 [-19.9, -13.8].
+- Decomposition, stress (0, -), c=0.1: SD PnL ratio A&S/Symmetric 0.476 [0.456, 0.497]. Spread first: SymTV/Symmetric (spread term, without skew) 0.974 [0.955, 0.996], then A&S/SymTV (skew, with the time-varying spread) 0.489 [0.467, 0.510]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 0.458 [0.439, 0.479], then A&S/SkewConst (spread term, with skew) 1.039 [1.024, 1.053]. Skew share: 0.96 spread first, 1.05 skew first, 1.01 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.067 [1.042, 1.093], SD q_T 1.137 [1.120, 1.155], mean PnL +3.1 [+1.6, +4.6] USD. SD q_T ratio: SymTV/Symmetric 0.993 [0.984, 1.003], A&S/SkewConst 1.129 [1.114, 1.142], SkewConst/Symmetric 0.609 [0.593, 0.626]. Mean PnL difference (USD): SymTV − Symmetric -2.2 [-3.7, -0.7], A&S − SkewConst +0.9 [+0.5, +1.3], SkewConst − Symmetric -11.6 [-14.6, -8.7].
+- Decomposition, stress (0.1, 0.9), c=0.1: SD PnL ratio A&S/Symmetric 1.047 [1.031, 1.063]. Spread first: SymTV/Symmetric (spread term, without skew) 0.988 [0.982, 0.993], then A&S/SymTV (skew, with the time-varying spread) 1.060 [1.044, 1.076]. Skew first: SkewConst/Symmetric (skew, without the time-varying spread) 1.048 [1.032, 1.065], then A&S/SkewConst (spread term, with skew) 0.999 [0.996, 1.001]. Skew share: 1.27 spread first, 1.03 skew first, 1.15 on average. Interaction (A&S/SkewConst)/(SymTV/Symmetric): SD PnL 1.011 [1.005, 1.017], SD q_T 1.037 [1.032, 1.043], mean PnL -17.4 [-20.7, -14.1] USD. SD q_T ratio: SymTV/Symmetric 1.000 [0.999, 1.001], A&S/SkewConst 1.037 [1.032, 1.043], SkewConst/Symmetric 0.935 [0.927, 0.943]. Mean PnL difference (USD): SymTV − Symmetric +21.0 [+18.2, +24.1], A&S − SkewConst +3.6 [+1.8, +5.2], SkewConst − Symmetric -129.4 [-139.2, -120.4].
 - Sensitivity, uninformed, c=0.1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 0.491 [0.459, 0.522]; k×0.5, σ×1: 0.696 [0.665, 0.726]; k×2, σ×1: 0.277 [0.256, 0.302]; k×1, σ×0.8: 0.567 [0.535, 0.598]; k×1, σ×1.25: 0.409 [0.382, 0.437].
 - Sensitivity, uninformed, c=1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 0.209 [0.194, 0.224]; k×0.5, σ×1: 0.307 [0.279, 0.343]; k×2, σ×1: 0.168 [0.154, 0.183]; k×1, σ×0.8: 0.253 [0.234, 0.272]; k×1, σ×1.25: 0.236 [0.214, 0.259].
 - Sensitivity, stress (0.1, 0.9), c=0.1, SD PnL ratio A&S/Symmetric (1000 episodes): k×1, σ×1: 1.048 [1.026, 1.070]; k×0.5, σ×1: 1.013 [0.994, 1.036]; k×2, σ×1: 1.160 [1.128, 1.193]; k×1, σ×0.8: 1.014 [0.998, 1.032]; k×1, σ×1.25: 1.083 [1.057, 1.110].
-- Bootstrap replicates dropped as non-finite: 0 of 976 intervals in the comparison files.
+- Bootstrap intervals: 152 pairs with 1216 intervals in the comparison files, and 15 2 x 2 sets with 45 interaction intervals in the factorial files; replicates dropped as non-finite: 0 of 1261 intervals.
 - Sampling error of the estimates (10 blocks of 100 calibration episodes): SE of σ̂ 0.0028 (0.4% of 0.6764), SE of k̂ 0.0054 (0.5% of 1.0930); the perturbations σ×0.8 and σ×1.25 are 49 and 61 SE, k×0.5 and k×2 are 102 and 203 SE.
 - k fit at the touch: measured λ(0.5) = 0.501/s against 0.259/s from the fitted exponential.
