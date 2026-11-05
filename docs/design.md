@@ -11,8 +11,8 @@ interface changes.
 | `core/`     | Order book engine with price-time priority, unit and randomized tests, benchmark | `lob::core` |
 | `paper/`    | Reproduction of the simulation in Avellaneda and Stoikov (2008) | `paper_replication` |
 | `lobster/`  | LOBSTER message and order-book file parser, replayer, per-message book validator, synthetic data generator, independent Python reference book | `lob::lobster`, `lobster_replay` |
-| `backtest/` | Event-driven market simulator, quoting strategies, Hawkes informed-flow stress test | `lob::backtest`, `stress_test` |
-| `python/`   | pybind11 module `lobsim` and pytest tests | `lobsim` |
+| `backtest/` | Event-driven market simulator, quoting strategies, Hawkes informed-flow stress test | `lob::backtest`, `backtest_run`, `stress_test` |
+| `python/`   | pybind11 extension `lobsim._lobsim` and the pure-Python package `lobsim` (type stubs, pytest tests, call-overhead and bulk-replay benchmark) | `lobsim` |
 | `results/`  | Generated tables and figures, one subdirectory per module | none |
 | `docs/`     | This file | none |
 
@@ -52,11 +52,21 @@ over hand-picked examples alone.
 
 **Results.** Every number quoted in a README or in docs comes from a command in this repository
 that writes its output under `results/<module>/` together with the command line, seed and git
-commit. Nothing is typed in by hand.
+commit. Nothing is typed in by hand. Tables in module READMEs sit between `tables:begin` and
+`tables:end` markers and are rewritten by the module's `make_tables.py`; prose that quotes a
+number from a table must be re-checked whenever the results are regenerated. The reproduce
+scripts use paths relative to the repository root, so no machine-specific path ends up in a
+committed file, and each `MANIFEST.txt` records the commit and whether the module's working tree
+was clean. Results are always regenerated from a committed tree.
 
 **Data.** No market data is stored in this repository, and none may be committed. Tests use
 synthetic data. Real LOBSTER sample files are downloaded separately and kept under `data/raw/`,
-which is git-ignored.
+which is git-ignored. Scratch files that the reproduce scripts write (synthetic LOBSTER-layout
+files, deleted after use) go under `data/tmp/`, also git-ignored.
+
+**Benchmarks.** Timings are only meaningful on a quiet machine. The reproduce scripts wait for the
+one-minute load average to drop below 1.3 and record the load before and after; numbers from the
+shared 2-core VM are indicative, not hardware claims.
 
 ## Core order book contract (`core/`)
 
