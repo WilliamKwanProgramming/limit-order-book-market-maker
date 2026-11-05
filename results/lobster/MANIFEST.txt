@@ -1,0 +1,41 @@
+generated: 2026-11-05T06:11:07Z
+commit: 471cdd1d10ce85b559415e15ce75ac8bc7380e5f
+compiler: /usr/bin/c++
+build type: Release
+python: Python 3.13.18
+machine: 2 cores, Intel(R) Xeon(R) Processor @ 2.80GHz
+load average at start: 1.09
+data directory (synthetic files, deleted after use): data/tmp/lobster
+--- commands (seeds are the --seed arguments)
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 1 --seed 101 --out data/tmp/lobster/seed101_n1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed101_n1_message_1.csv --book data/tmp/lobster/seed101_n1_orderbook_1.csv --levels 1 --stats --out results/lobster/validation/seed101_n1  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 5 --seed 101 --out data/tmp/lobster/seed101_n5
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed101_n5_message_5.csv --book data/tmp/lobster/seed101_n5_orderbook_5.csv --levels 5 --stats --out results/lobster/validation/seed101_n5  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 10 --seed 101 --out data/tmp/lobster/seed101_n10
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed101_n10_message_10.csv --book data/tmp/lobster/seed101_n10_orderbook_10.csv --levels 10 --stats --out results/lobster/validation/seed101_n10  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 1 --seed 102 --out data/tmp/lobster/seed102_n1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed102_n1_message_1.csv --book data/tmp/lobster/seed102_n1_orderbook_1.csv --levels 1 --stats --out results/lobster/validation/seed102_n1  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 5 --seed 102 --out data/tmp/lobster/seed102_n5
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed102_n5_message_5.csv --book data/tmp/lobster/seed102_n5_orderbook_5.csv --levels 5 --stats --out results/lobster/validation/seed102_n5  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 10 --seed 102 --out data/tmp/lobster/seed102_n10
+build-release/lobster/lobster_replay --messages data/tmp/lobster/seed102_n10_message_10.csv --book data/tmp/lobster/seed102_n10_orderbook_10.csv --levels 10 --stats --out results/lobster/validation/seed102_n10  # expected exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 1 --seed 201 --cut 100000 --out data/tmp/lobster/cut_seed201_n1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n1_message_1.csv --book data/tmp/lobster/cut_seed201_n1_orderbook_1.csv --out results/lobster/cut/cut_seed201_n1/strict  # expected exit code 1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n1_message_1.csv --book data/tmp/lobster/cut_seed201_n1_orderbook_1.csv --policy lenient --out results/lobster/cut/cut_seed201_n1/lenient  # expected exit code 0|1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n1_message_1.csv --book data/tmp/lobster/cut_seed201_n1_orderbook_1.csv --policy lenient --bootstrap --out results/lobster/cut/cut_seed201_n1/lenient_bootstrap  # expected exit code 0|1
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 5 --seed 201 --cut 100000 --out data/tmp/lobster/cut_seed201_n5
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n5_message_5.csv --book data/tmp/lobster/cut_seed201_n5_orderbook_5.csv --out results/lobster/cut/cut_seed201_n5/strict  # expected exit code 1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n5_message_5.csv --book data/tmp/lobster/cut_seed201_n5_orderbook_5.csv --policy lenient --out results/lobster/cut/cut_seed201_n5/lenient  # expected exit code 0|1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n5_message_5.csv --book data/tmp/lobster/cut_seed201_n5_orderbook_5.csv --policy lenient --bootstrap --out results/lobster/cut/cut_seed201_n5/lenient_bootstrap  # expected exit code 0|1
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 10 --seed 201 --cut 100000 --out data/tmp/lobster/cut_seed201_n10
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n10_message_10.csv --book data/tmp/lobster/cut_seed201_n10_orderbook_10.csv --out results/lobster/cut/cut_seed201_n10/strict  # expected exit code 1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n10_message_10.csv --book data/tmp/lobster/cut_seed201_n10_orderbook_10.csv --policy lenient --out results/lobster/cut/cut_seed201_n10/lenient  # expected exit code 0|1
+build-release/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n10_message_10.csv --book data/tmp/lobster/cut_seed201_n10_orderbook_10.csv --policy lenient --bootstrap --out results/lobster/cut/cut_seed201_n10/lenient_bootstrap  # expected exit code 0|1
+python3 lobster/tools/synth_lobster.py --messages 2000000 --levels 10 --seed 301 --out data/tmp/lobster/bench
+waited 0 s for a quiet machine (limit 600 s)
+load average before the benchmark: 1.00
+build-release/lobster/lobster_replay --messages data/tmp/lobster/bench_message_10.csv --book data/tmp/lobster/bench_orderbook_10.csv --bench --bench-passes 7 --out results/lobster/bench  # expected exit code 0
+load average after the benchmark: 1.08
+file size: 80626111 bytes, bench_message_10.csv
+file size: 465083412 bytes, bench_orderbook_10.csv
+python3 lobster/tools/make_tables.py

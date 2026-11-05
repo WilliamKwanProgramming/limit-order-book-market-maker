@@ -1,0 +1,10 @@
+command: build-release/backtest/backtest_run --strategies none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629 --episodes 2000 --seed 202 --bootstrap 1000 --as-sigma 0.67637267833643311 --as-k 1.0930232451328947 --out results/backtest/baseline
+seed: 202
+episodes: 2000
+strategies: none,naive,as:7.28629e-05,sym:7.28629e-05,as:0.000218589,sym:0.000218589,as:0.000728629,sym:0.000728629,as:0.00218589,sym:0.00218589,as:0.00728629,sym:0.00728629
+as_sigma: 0.67637267833643311
+as_k: 1.0930232451328947
+params: horizon=600 burn-in=300 markout-tail=10 ref-price=10000 lo-rate=1 lo-alpha=0.5 lo-levels=10 cancel-hazard=0.3 lo-size-mean=2 init-levels=10 init-lots=3 mo-rate=1 mo-size-mean=2 news-rate=0 branching=0.5 hawkes-decay=2 inf-size-mean=2 latency=0.001 requote=0.1 max-inventory=10 quote-size=1 check-every=0
+wall_seconds: 109.2
+loadavg_start: 1.04
+loadavg_end: 1.19

@@ -1,0 +1,12 @@
+seed=102 messages=500000 levels=1 cut=0
+by_type=1:216279,2:23663,3:108586,4:134530,5:11851,6:3061,7:2030
+max_resting_orders=125
+rows_sharing_previous_timestamp=132754
+rows_with_an_empty_side=3887
+rows_with_fewer_than_n_levels=3887
+events_clear_side=963
+events_inside_spread_adds=8407
+events_multi_row_sweeps=12893
+events_sweep_remainders=311
+events_sweeps=16795
+resting_orders_at_end=51

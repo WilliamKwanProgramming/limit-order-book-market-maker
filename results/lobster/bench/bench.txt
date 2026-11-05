@@ -1,0 +1,8 @@
+command=build-release/lobster/lobster_replay --messages data/tmp/lobster/bench_message_10.csv --book data/tmp/lobster/bench_orderbook_10.csv --bench --bench-passes 7 --out results/lobster/bench --quiet
+build=GNU 13.3.0, Release, -O3 -DNDEBUG
+bench_passes=7
+load_average_before=1.00
+load_average_after=1.08
+parse: messages=2000000 msgs_per_s best=7.264e+06 median=6.611e+06 worst=5.247e+06
+parse+replay: messages=2000000 msgs_per_s best=4.317e+06 median=3.724e+06 worst=3.099e+06
+parse+replay+validate: messages=2000000 msgs_per_s best=8.739e+05 median=8.054e+05 worst=6.877e+05
