@@ -2,8 +2,12 @@ name: ci
 
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -50,4 +54,31 @@ jobs:
       - name: Build
         run: cmake --build build
       - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  python:
+    name: python bindings, gcc-13, Release, Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install toolchain and Python packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++-13
+          python -m pip install "pybind11>=3.0" numpy pytest mypy==2.4.1
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLOB_WERROR=ON
+          -DCMAKE_CXX_COMPILER=g++-13 -DPython3_EXECUTABLE="$(which python)"
+          -DLOB_MODULES="core;paper;python"
+      - name: Build
+        run: cmake --build build
+      - name: Test (C++ tests and pytest, including the stub check)
         run: ctest --test-dir build --output-on-failure
