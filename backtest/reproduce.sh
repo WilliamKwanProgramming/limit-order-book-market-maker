@@ -88,7 +88,7 @@ done
   fi
   echo "compiler: $(grep -m1 CMAKE_CXX_COMPILER: "$build/CMakeCache.txt" | cut -d= -f2)"
   echo "build type: $(grep -m1 CMAKE_BUILD_TYPE: "$build/CMakeCache.txt" | cut -d= -f2)"
-  echo "machine: $(nproc) cores, $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')"
+  echo "machine: $(nproc --all) cores, $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')"
   echo "load average (1 min) at start: $load_start, at end: $(cut -d' ' -f1 /proc/loadavg)"
   echo "episodes per strategy: $N (calibration 1000, sensitivity $NS); bootstrap replicates: $B"
   echo "A&S estimates: sigma=$sigma ticks/sqrt(s), k=$k 1/tick"
