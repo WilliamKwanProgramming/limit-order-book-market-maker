@@ -50,6 +50,12 @@ trailing zeros of the fraction are dropped. The book is asserted never to be cro
 --cut K simulates K extra messages first and does not write them (nor their book rows); the book
 keeps the orders they created. This emulates a file that starts after the open.
 
+--full-row FILE (with --cut) also writes the complete book after the first written message as one
+order-book row with every non-empty level of both sides plus one empty level (sentinels pad the
+shorter side). It is the order-book row of message 1 without the N-level limit, so undoing message 1
+on it gives the complete book at the cut. Used only by the cut experiment
+(lobster/cut_full_seed.sh); it does not change the message or order-book files.
+
 Uses random.Random(seed) only; output is a deterministic function of the arguments and the
 Python version's random module.
 """
@@ -305,6 +311,20 @@ def format_time(t_ns, rng):
     return text
 
 
+def write_full_row(path, book):
+    """Every level of both sides, best first, plus one empty level, as one order-book row."""
+    asks = book.top(SELL, len(book.levels[SELL]))
+    bids = book.top(BUY, len(book.levels[BUY]))
+    depth = max(len(asks), len(bids)) + 1
+    fields = []
+    for i in range(depth):
+        ap_, as_ = asks[i] if i < len(asks) else (EMPTY_ASK, 0)
+        bp_, bs_ = bids[i] if i < len(bids) else (EMPTY_BID, 0)
+        fields += (ap_, as_, bp_, bs_)
+    with open(path, "w", newline="\n") as f:
+        f.write(",".join(map(str, fields)) + "\n")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--messages", type=int, required=True, help="message rows to write (M)")
@@ -313,9 +333,13 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="output prefix PREFIX")
     ap.add_argument("--cut", type=int, default=0,
                     help="simulate K messages first and do not write them (default 0)")
+    ap.add_argument("--full-row", metavar="FILE",
+                    help="with --cut: write the complete book after the first written message")
     args = ap.parse_args(argv)
     if args.messages < 1 or args.levels < 1 or args.cut < 0:
         ap.error("--messages and --levels must be >= 1, --cut >= 0")
+    if args.full_row and args.cut == 0:
+        ap.error("--full-row needs --cut")
 
     flow = Flow(args.seed)
     fmt_rng = random.Random(args.seed ^ 0x5EED)  # time formatting only
@@ -350,6 +374,8 @@ def main(argv=None):
                     bp_, bs_ = bids[i] if i < len(bids) else (EMPTY_BID, 0)
                     fields += (ap_, as_, bp_, bs_)
                 bf.write(",".join(map(str, fields)) + "\n")
+                if args.full_row and done == args.cut + 1:
+                    write_full_row(args.full_row, flow.book)
                 if not asks or not bids:
                     info["rows_with_an_empty_side"] += 1
                 if len(asks) < n_levels or len(bids) < n_levels:

@@ -25,6 +25,10 @@ set(lobster_build_info
     "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, ${CMAKE_BUILD_TYPE}, ${lobster_flags}")
 target_compile_definitions(lobster_replay PRIVATE LOBSTER_BUILD_INFO="${lobster_build_info}")
 
+# The cut experiment with ghosts seeded from the complete book (lobster/cut_full_seed.sh).
+add_executable(lobster_cut_full_seed tools/cut_full_seed.cpp)
+target_link_libraries(lobster_cut_full_seed PRIVATE lob::lobster)
+
 if(LOB_BUILD_TESTS)
   foreach(test test_format test_replay test_alloc)
     add_executable(lobster_${test} tests/${test}.cpp)

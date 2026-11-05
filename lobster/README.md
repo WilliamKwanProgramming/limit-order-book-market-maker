@@ -301,6 +301,27 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
   measured. The core benchmark (`core/README.md`) is not comparable: it replays from memory
   without parsing.
 
+## Cut files: does the complete book remove the remaining mismatches?
+
+The Reading of Table 4 explains the mismatches left after the bootstrap by levels deeper than $N$
+at the start of the window. The generator knows its complete book at the cut, so this can be
+tested. `lobster/cut_full_seed.sh` regenerates the cut files of Table 4 (seed 201, 500,000
+messages after a cut of 100,000) for $N = 5$ and $N = 10$ and replays each twice under the lenient
+policy: once with `--bootstrap` as in Table 4, and once with `lobster_cut_full_seed`
+(`tools/cut_full_seed.cpp`), which differs only in the row the ghosts are seeded from. The
+generator (`--full-row`) writes the complete book after message 1 (every level, true sizes);
+`Replayer::seed_ghosts` undoes message 1 on it as usual and rests one ghost order per level of the
+complete book at the cut. Validation is unchanged: the engine's top $N$ levels against every
+$N$-level row of the order-book file.
+
+**Prediction, written down before the run.** With ghosts seeded from the complete book, the
+number of rows with a mismatch falls to zero for both $N = 5$ and $N = 10$, with no unexplained
+reference and no shortfall. Reason: in replay mode the book's level sizes depend only on which
+sizes were added and removed at each price, not on queue order, and with every pre-cut level
+present every reference to a pre-cut order finds ghost size at its side and price. If rows still
+mismatch, the explanation in the Reading of Table 4 is incomplete, and the remaining mismatches
+will be classified here.
+
 ## Build, test, reproduce
 
 ```sh
