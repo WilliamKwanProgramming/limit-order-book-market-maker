@@ -26,6 +26,8 @@ module's files. The root `CMakeLists.txt` adds a module automatically when
 `cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure`.
 Options: `LOB_SANITIZE=ON` (ASan and UBSan), `LOB_WERROR=ON`, `LOB_NATIVE=ON` (local experiments
 only; published numbers use the default flags).
+`LOB_MODULES` (default: all) selects the modules to configure, for example
+`-DLOB_MODULES="core;paper;lobster"`; list every module a target depends on.
 
 **Language.** C++17 without compiler extensions. Warning-free with GCC 13 and Clang 18 under
 `-Wall -Wextra -Wpedantic -Wshadow -Wconversion`, and clean under `LOB_SANITIZE=ON`. Prefer

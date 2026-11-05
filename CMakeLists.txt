@@ -41,8 +41,11 @@ endif()
 
 add_subdirectory(common)
 
-# Each module owns its directory and CMakeLists.txt; it is picked up when present.
-foreach(module core paper lobster backtest python)
+# Each module owns its directory and CMakeLists.txt; it is picked up when present. Configure a
+# subset with, for example, -DLOB_MODULES="core;paper" (modules a target depends on must be listed).
+set(LOB_MODULES "core;paper;lobster;backtest;python" CACHE STRING
+    "Semicolon-separated list of modules to configure")
+foreach(module IN LISTS LOB_MODULES)
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${module}/CMakeLists.txt")
     add_subdirectory(${module})
   endif()
