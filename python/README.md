@@ -158,7 +158,8 @@ PYTHONPATH=build-python/python python3 python/examples/quickstart.py /tmp/quicks
   `TypeError` for wrong argument types, numpy scalars, keyword arguments.
 - `test_stubs.py`: parameter names of every stubbed function equal the signature pybind11 records
   in the runtime docstring, every public callable is stubbed, and `mypy.stubtest` (allowlist in
-  `tests/stubtest_allowlist.txt`) passes; the stubtest part is skipped when mypy is not installed.
+  `tests/stubtest_allowlist.txt`) passes; the stubtest part is skipped when mypy is not installed
+  (the CI job installs mypy 2.4.1, so it runs there).
 
 **Mutation check.** `tests/mutation_check.py` copies the sources to a temporary directory, applies
 one deliberate bug at a time there (the working tree is not touched), rebuilds the extension and
@@ -182,37 +183,37 @@ pybind11 and compiler versions, load average):
 PYTHONPATH=build-python/python python3 python/bench/bench_bindings.py --out results/python/bench.txt
 ```
 
-From `results/python/bench.txt` (git 20f211a, GCC 13.3 Release, CPython 3.13.18, numpy 2.5.3,
-7 runs each, load average 1.13 at start). **Measured on a shared 2-core cloud VM** (Intel Xeon
+From `results/python/bench.txt` (git 471cdd1, GCC 13.3 Release, CPython 3.13.18, numpy 2.5.3,
+7 runs each, load average 1.08 at start). **Measured on a shared 2-core cloud VM** (Intel Xeon
 @ 2.80GHz) while other jobs could run; treat as indicative.
 
 Per-call overhead, book of 300 orders, loop overhead included (200,000 iterations per loop):
 
 | Call | median calls/s | median ns/call |
 |---|---|---|
-| `submit_limit` (rests) + `cancel` | 1.46e6 | 686 |
-| `add_resting` + `execute_resting` (1 fill) | 1.30e6 | 769 |
-| `add_resting` + `submit_market`, reading `.fills` | 7.22e5 | 1385 |
-| `best_bid()` | 3.52e6 | 284 |
-| `depth(Side.Bid, 10)` | 1.27e6 | 787 |
-| `len(book)` | 5.10e6 | 196 |
-| pure-Python no-op method with 5 arguments, for scale | 2.28e7 | 44 |
+| `submit_limit` (rests) + `cancel` | 1.40e6 | 714.1 |
+| `add_resting` + `execute_resting` (1 fill) | 1.42e6 | 704.5 |
+| `add_resting` + `submit_market`, reading `.fills` | 9.07e5 | 1102.1 |
+| `best_bid()` | 3.29e6 | 304.4 |
+| `depth(Side.Bid, 10)` | 1.28e6 | 779.7 |
+| `len(book)` | 6.33e6 | 157.9 |
+| pure-Python no-op method with 5 arguments, for scale | 2.05e7 | 48.8 |
 
 One bound call costs a few hundred nanoseconds. Most of that is binding overhead: `len(book)`,
-which does almost no work in C++, takes 196 ns.
+which does almost no work in C++, takes 157.9 ns.
 
 Bulk replay of a 5,000,000-message synthetic stream (seed 42; 45.5% adds, 4.5% partial cancels,
 34.1% deletions, 15.9% executions; about 300 orders on 25 to 32 levels per side):
 
 | `replay_lobster` | median msgs/s | min | max | median ns/msg |
 |---|---|---|---|---|
-| `capture_top=False` | 1.53e7 | 1.31e7 | 1.56e7 | 65.5 |
-| `capture_top=True` | 1.37e7 | 1.03e7 | 1.44e7 | 72.8 |
+| `capture_top=False` | 1.47e7 | 1.24e7 | 1.56e7 | 68.1 |
+| `capture_top=True` | 1.42e7 | 1.12e7 | 1.45e7 | 70.5 |
 
 This is the same order of magnitude as the C++ replay benchmark in `results/core/bench.txt`
 (the script prints the ratio of medians). The two streams are generated differently, so only the
 order of magnitude is comparable. A Python loop making one scalar call per message would pay the
-per-call costs in the first table on every message, against 65.5 ns per message for
+per-call costs in the first table on every message, against 68.1 ns per message for
 `replay_lobster` (that loop was not benchmarked).
 
 ## Limitations
@@ -235,4 +236,5 @@ per-call costs in the first table on every message, against 65.5 ns per message 
   its own build directory.
 - The synthetic streams for the tests and the benchmark come from numpy's `default_rng` with
   explicit seeds, not from `lob::Rng`; they are test inputs, not reported experiment results.
-- Verified only on Linux x86-64 with CPython 3.13. Other platforms and versions are untested.
+- Verified only on Linux x86-64 (this VM and the Ubuntu 24.04 CI runners) with CPython 3.12 (CI
+  only) and 3.13. Other platforms and versions are untested.
