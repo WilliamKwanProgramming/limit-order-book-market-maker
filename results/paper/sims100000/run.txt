@@ -1,4 +1,4 @@
-command: /home/claude/limit-order-book-market-maker/build-paper/paper/paper_replication --sims 100000 --seed 2 --per-sim 0 --bootstrap 1000 --block-size 1000 --out results/paper/sims100000
+command: build-release/paper/paper_replication --sims 100000 --seed 2 --per-sim 0 --bootstrap 1000 --block-size 1000 --out results/paper/sims100000
 seed: 2
 sims: 100000
 model: s0=100 sigma=2 T=1 A=140 k=1.5 steps=200 dt=0.005
