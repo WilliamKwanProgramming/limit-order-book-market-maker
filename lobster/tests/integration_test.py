@@ -23,11 +23,11 @@ CASES = [(1, 1), (2, 5), (3, 10), (4, 10)]  # (seed, levels)
 CUT_CASE = (5, 10, 50_000)                   # (seed, levels, cut)
 # Loose bound for the cut file: the bootstrapped mismatch rate must be at most CUT_RATIO times the
 # rate without the bootstrap. The ghosts reproduce every visible level at the cut exactly, so what
-# remains comes from orders deeper than N levels at the cut (invisible to the heuristic) and from
-# ghost queue positions that differ from the real ones. The ratio measured when the test was
-# written is printed below and is far under 0.5; the bound only guards against the heuristic
-# becoming useless. In this toy flow orders turn over within about a thousand messages, so both
-# rates are small; real books keep orders much longer.
+# remains comes from orders deeper than N levels at the cut, which are invisible to the heuristic
+# (seeding from the complete book removes every mismatch: results/lobster/cut_full_seed/). The
+# ratio measured when the test was written is printed below and is far under 0.5; the bound only
+# guards against the heuristic becoming useless. In this toy flow orders turn over within about a
+# thousand messages, so both rates are small; real books keep orders much longer.
 CUT_RATIO = 0.5
 
 failures = []

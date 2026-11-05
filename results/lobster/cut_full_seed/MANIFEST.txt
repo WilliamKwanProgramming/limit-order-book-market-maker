@@ -1,0 +1,14 @@
+generated: 2026-11-05T07:10:15Z
+commit: 83503c3c1dfb7ada8cbb999ff605c0948e1222d1
+working tree before the run: clean
+compiler: /usr/bin/c++
+build type: Release
+python: Python 3.13.18
+data directory (synthetic files, deleted after use): data/tmp/lobster
+--- commands (seeds are the --seed arguments; exit code 1 means some row mismatched)
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 5 --seed 201 --cut 100000 --out data/tmp/lobster/cut_seed201_n5 --full-row data/tmp/lobster/cut_seed201_n5_full_row.csv
+build-lobster/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n5_message_5.csv --book data/tmp/lobster/cut_seed201_n5_orderbook_5.csv --policy lenient --bootstrap --out results/lobster/cut_full_seed/cut_seed201_n5/lenient_bootstrap --quiet  # exit code 1
+build-lobster/lobster/lobster_cut_full_seed --messages data/tmp/lobster/cut_seed201_n5_message_5.csv --book data/tmp/lobster/cut_seed201_n5_orderbook_5.csv --full-row data/tmp/lobster/cut_seed201_n5_full_row.csv --out results/lobster/cut_full_seed/cut_seed201_n5/lenient_full_seed  # exit code 0
+python3 lobster/tools/synth_lobster.py --messages 500000 --levels 10 --seed 201 --cut 100000 --out data/tmp/lobster/cut_seed201_n10 --full-row data/tmp/lobster/cut_seed201_n10_full_row.csv
+build-lobster/lobster/lobster_replay --messages data/tmp/lobster/cut_seed201_n10_message_10.csv --book data/tmp/lobster/cut_seed201_n10_orderbook_10.csv --policy lenient --bootstrap --out results/lobster/cut_full_seed/cut_seed201_n10/lenient_bootstrap --quiet  # exit code 1
+build-lobster/lobster/lobster_cut_full_seed --messages data/tmp/lobster/cut_seed201_n10_message_10.csv --book data/tmp/lobster/cut_seed201_n10_orderbook_10.csv --full-row data/tmp/lobster/cut_seed201_n10_full_row.csv --out results/lobster/cut_full_seed/cut_seed201_n10/lenient_full_seed  # exit code 0
