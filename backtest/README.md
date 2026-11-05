@@ -198,6 +198,98 @@ $\hat\sigma$, runs the uninformed baseline (seed 202) and the stress grid (seed 
 commands, seeds, git commit and machine load in `results/backtest/MANIFEST.txt`, then calls
 `make_tables.py` (tables below and `results/backtest/tables.md`) and `plot.py` (figures).
 
+## Wave 3 analyses (written before they were run)
+
+This section was committed before any of the runs below was made. It fixes every choice of the
+three analyses that answer three questions: how much of the A&S variance reduction comes from the
+inventory skew and how much from the time-varying spread; how sensitive the results are to the
+estimated $\sigma$ and $k$; and whether the intervals are what they say. Nothing below may be
+changed after the runs; any deviation is listed at the end of this section with its reason.
+
+**New arm `symtv:<gamma>` (SymmetricTimeVarying).** Quotes $s \mp \delta(t)/2$ with
+$\delta(t) = \gamma\sigma^2(T - t) + \tfrac{2}{\gamma}\ln(1 + \gamma/k)$ at the current time $t$
+(capped at $T$, as for A&S), $s$ the others' mid, no inventory term. It uses
+`lob::paper::QuotingRule` with `paper::Strategy::SymmetricTimeMatched` and the common rules (tick
+rounding, post-only clipping, inventory limit, 100 ms requoting). It differs from A&S only by the
+skew and from SymmetricMatched only by the time variation of the spread, so
+$$\frac{\mathrm{SD}_{A\&S}}{\mathrm{SD}_{Sym}} = \frac{\mathrm{SD}_{A\&S}}{\mathrm{SD}_{SymTV}} \times \frac{\mathrm{SD}_{SymTV}}{\mathrm{SD}_{Sym}}$$
+holds exactly for the point estimates (same episodes), for the SD of PnL and of $q_T$.
+Regression requirement: adding the arm must leave every `summary.csv` row of the existing arms
+byte-identical (same seeds), and the bootstrap streams of the existing pairs unchanged (new pairs
+are appended after the existing ones).
+
+**Analysis 1: decomposition.**
+- Runs: the uninformed baseline (seed 202, 2000 episodes) gets `symtv:<gamma>` for each of the
+  five $\gamma$ values, appended to the existing strategy list; the stress grid (seed 303, 2000
+  episodes per cell) gets `symtv:<gamma>` at $c = 0.1$, appended, in every cell (it costs one arm).
+- Pairs: A&S against SymTV (isolates the skew) and SymTV against Symmetric (isolates the
+  time-varying spread), at the same $\gamma$, with the statistics of Tables 4 and 6 (ratio of SDs
+  of PnL, ratio of SDs of $q_T$, difference in mean PnL, difference in mean/SD, mean $|q|$
+  difference, 10 s markout difference), paired percentile bootstrap with the same episode indices
+  for both arms, the same replicate count as the other comparisons.
+- Table: per $c$ in the baseline, and for the stress cells $(0, -)$ and $(0.1, 0.9)$, the three
+  rows A&S/Sym, A&S/SymTV, SymTV/Sym and a fourth row with the product of the two factors (point
+  estimates only), which must equal the A&S/Sym row. The other stress cells go to `tables.md` only.
+- Reading rule: the "skew share" of the reduction in the SD of PnL is
+  $\ln(\mathrm{SD}_{A\&S}/\mathrm{SD}_{SymTV}) / \ln(\mathrm{SD}_{A\&S}/\mathrm{SD}_{Sym})$, a point
+  estimate (it has no bootstrap interval, because the two factors are bootstrapped on separate
+  streams); the two factor intervals are the evidence. The skew carries most of the reduction at a
+  given $c$ if the A&S/SymTV ratio is below the SymTV/Sym ratio and their intervals do not
+  overlap. The share is reported for every $c$ and both stress cells, whatever it is.
+
+**Analysis 2: sensitivity to $\sigma$ and $k$.**
+- New driver options `--k-scale X` and `--sigma-scale X` (default 1) multiply the $k$ and
+  $\sigma$ given to the as, sym and symtv arms; $\gamma$ stays at the value written in the strategy
+  spec, i.e. the value chosen from the unperturbed $\hat\sigma$, so a perturbation moves both the
+  skew and the spread.
+- Settings (one input perturbed at a time): $(k, \sigma)$ scales $(1, 1)$, $(0.5, 1)$, $(2, 1)$,
+  $(1, 0.8)$, $(1, 1.25)$. The unperturbed setting is rerun at the same episode count so every row
+  of the table has the same $n$.
+- Cells: uninformed (seed 202) with as, symtv and sym at $c = 0.1$ and at $c = 1$ in one run; the
+  stress cell $\nu = 0.1$, $n_{br} = 0.9$ (seed 303) with as, symtv and sym at $c = 0.1$. Same
+  seeds as the baseline and stress runs, so episode $e$ is the same episode as there (common random
+  numbers across settings and with the main runs).
+- 1000 episodes per cell and setting, a compute-budget choice (half the main runs), so the
+  intervals are about $\sqrt 2$ wider than in Tables 4 and 6.
+- Reported per cell and setting: A&S mean PnL $\pm$ 1.96 SE and SD of PnL; the SD-of-PnL ratios
+  A&S/Sym, A&S/SymTV and SymTV/Sym with bootstrap intervals; in `tables.md` also the SD-of-$q_T$
+  ratio and the mean PnL difference of A&S against Sym.
+- Reading: each perturbed row is compared with the unperturbed row of the same cell. No interval
+  is computed for the difference between settings.
+- Interval for the estimates themselves: the calibration run (seed 101, 1000 episodes) also
+  writes $\hat\sigma$ and $\hat k$ for 10 consecutive blocks of 100 episodes (option
+  `--calib-blocks 10`). Each block's $k$ fit uses the same $\delta$ points as the full-sample fit,
+  so block differences come from sampling only. Reported: the ten block values, their mean and SD,
+  and SD$/\sqrt{10}$ as the standard error of the 1000-episode estimate, compared with the
+  perturbations ($k \times 0.5$ and $\times 2$, $\sigma \times 0.8$ and $\times 1.25$). Sampling
+  error does not measure misspecification (the exponential misses the touch by about a factor of
+  two); that is what the large $k$ perturbations are for.
+
+**Analysis 3: intervals.**
+- Every "± 95%" column is relabelled "± 1.96 SE (normal approximation)".
+- `comparison.csv` and `stress_comparison.csv` get a column `replicates_kept`, the number of
+  finite bootstrap replicates behind each interval; Table 4 shows the smallest count per row. If
+  any replicate is dropped anywhere, the README says where.
+- Monte Carlo error of the percentile endpoints: three headline intervals are recomputed with
+  10,000 replicates on the same episodes (separate runs with only the two arms concerned, same
+  seeds): Table 4 SD-of-PnL ratio and SD-of-$q_T$ ratio for A&S against Symmetric at $c = 1$, and
+  Table 6 mean PnL difference at $(0.1, 0.9)$. Decision rule: if any of the six endpoints moves by
+  more than 5% of the width of the 10,000-replicate interval, the default replicate count is
+  raised to 10,000 for every comparison and everything is regenerated; otherwise 1000 stays. Both
+  sets of endpoints are reported in one table either way.
+- Table 3 and Table 5 get a column "adverse selection per fill (spread captured minus 10 s
+  markout, ticks)".
+
+**Multiplicity.** The analyses add 10 baseline pairs, 20 stress pairs and 30 sensitivity pairs,
+each with several statistics. The intervals are per-comparison 95% intervals, not corrected for
+multiplicity; the reading quotes only the rows named above.
+
+**Compute budget.** The added baseline arms cost about 5 x 2000 episodes, the stress arm 10 x
+2000, the sensitivity runs 5 settings x (6 x 1000 + 3 x 1000) arm-episodes, and the Monte Carlo
+check 2 x 2 x 2000: all together well under the 40 minutes of one core allowed.
+
+**Deviations from this plan:** none so far.
+
 ## Results
 
 <!-- tables:begin -->
