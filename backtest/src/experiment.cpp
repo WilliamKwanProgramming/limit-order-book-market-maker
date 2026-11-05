@@ -210,7 +210,8 @@ MarketDiagnostics diagnose(const std::vector<EpisodeResult>& eps, double horizon
   return d;
 }
 
-KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count) {
+KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t min_count,
+           const std::vector<bool>* points) {
   KFit f;
   std::int64_t hist[kReachBins] = {};
   for (const EpisodeResult& r : eps) {
@@ -230,7 +231,8 @@ KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t m
     if (ge[j] == 0) break;
     const double delta = 0.5 * static_cast<double>(j);
     const double rate = static_cast<double>(ge[j]) / per_side_time;
-    const bool use = ge[j] >= min_count;
+    const std::size_t i = j - 1;
+    const bool use = points ? (i < points->size() && (*points)[i]) : ge[j] >= min_count;
     f.delta.push_back(delta);
     f.rate.push_back(rate);
     f.count.push_back(ge[j]);
@@ -253,6 +255,29 @@ KFit fit_k(const std::vector<EpisodeResult>& eps, double horizon, std::int64_t m
     f.r2 = vy > 0 ? cxy * cxy / (vx * vy) : 1.0;
   }
   return f;
+}
+
+std::vector<CalibrationBlock> calibration_blocks(const std::vector<EpisodeResult>& eps,
+                                                 double horizon, int blocks, const KFit& full) {
+  std::vector<CalibrationBlock> out;
+  const std::size_t n = eps.size();
+  if (blocks < 1) return out;
+  const auto nb = static_cast<std::size_t>(blocks);
+  for (std::size_t b = 0; b < nb; ++b) {
+    const std::size_t lo = b * n / nb, hi = (b + 1) * n / nb;
+    const std::vector<EpisodeResult> sub(eps.begin() + static_cast<std::ptrdiff_t>(lo),
+                                         eps.begin() + static_cast<std::ptrdiff_t>(hi));
+    CalibrationBlock c;
+    c.first = static_cast<int>(lo);
+    c.episodes = static_cast<int>(hi - lo);
+    c.sigma = diagnose(sub, horizon).sigma[2];  // the 10 s scale, as for the full estimate
+    const KFit f = fit_k(sub, horizon, 0, &full.used);
+    c.k = f.k;
+    c.A = f.A;
+    for (bool u : f.used) c.points += u ? 1 : 0;
+    out.push_back(c);
+  }
+  return out;
 }
 
 namespace {
@@ -324,6 +349,7 @@ std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
     ni.name = kStatNames[k];
     ni.iv.estimate = est[k];
     auto& r = reps[static_cast<std::size_t>(k)];
+    ni.kept = static_cast<int>(r.size());
     std::sort(r.begin(), r.end());
     if (r.empty()) {
       ni.iv.lo = ni.iv.hi = std::nan("");

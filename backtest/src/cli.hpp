@@ -26,7 +26,13 @@ struct Options {
   int bootstrap = 1000;
   AsCalibration calib{1.0, 1.0};
   bool calib_given = false;
+  // Sensitivity runs: the k and sigma given to the as, sym and symtv arms are calib.k * k_scale and
+  // calib.sigma * sigma_scale; gamma stays as written in the strategy list.
+  double k_scale = 1.0;
+  double sigma_scale = 1.0;
   bool calibrate = false;
+  int calib_blocks = 0;  // with calibrate: also estimate sigma and k on this many episode blocks
+  AsCalibration as_inputs() const { return {calib.sigma * sigma_scale, calib.k * k_scale}; }
   std::string list_params;  // write the parameter table to this file and exit
   std::vector<double> nu_grid{0.0};
   std::vector<double> nbr_grid{0.5};
@@ -72,9 +78,17 @@ inline void usage(std::FILE* f, const char* prog, bool grid) {
                "  --bootstrap B      paired bootstrap replicates, 0 to skip (default 1000)\n"
                "  --as-sigma X       A&S sigma estimate, ticks/sqrt(s) (required for as/sym/symtv)\n"
                "  --as-k X           A&S k estimate, 1/tick (required for as/sym/symtv)\n"
-               "  --calibrate 0|1    also write calibration.csv and reach.csv from strategy none\n"
+               "  --k-scale X        give the as/sym/symtv arms k = X * (--as-k) (default 1;\n"
+               "                     sensitivity runs; gamma is not changed)\n"
+               "  --sigma-scale X    give the as/sym/symtv arms sigma = X * (--as-sigma) (default 1)\n"
                "  --list-params FILE write the parameter table (CSV) and exit\n",
                grid ? " and grid cell" : "");
+  if (!grid) {
+    std::fprintf(f,
+                 "  --calibrate 0|1    also write calibration.csv and reach.csv from strategy none\n"
+                 "  --calib-blocks N   with --calibrate 1: also write calibration_blocks.csv, sigma\n"
+                 "                     and k on N consecutive blocks of episodes (default 0 = off)\n");
+  }
   if (grid) {
     std::fprintf(f,
                  "  --nu-grid LIST     news rates, 1/s (0 = no informed flow; run once)\n"
@@ -138,8 +152,14 @@ inline bool parse(int argc, char** argv, Options& o, bool grid) {
     } else if (flag == "--as-k" && parse_double(v, x) && x > 0) {
       o.calib.k = x;
       k_set = true;
-    } else if (flag == "--calibrate" && parse_long(v, n) && (n == 0 || n == 1)) {
+    } else if (flag == "--k-scale" && parse_double(v, x) && x > 0) {
+      o.k_scale = x;
+    } else if (flag == "--sigma-scale" && parse_double(v, x) && x > 0) {
+      o.sigma_scale = x;
+    } else if (!grid && flag == "--calibrate" && parse_long(v, n) && (n == 0 || n == 1)) {
       o.calibrate = n == 1;
+    } else if (!grid && flag == "--calib-blocks" && parse_long(v, n) && n >= 0 && n <= 1000) {
+      o.calib_blocks = static_cast<int>(n);
     } else if (flag == "--list-params") {
       o.list_params = v;
     } else if (grid && flag == "--nu-grid" && parse_list(v, o.nu_grid)) {
@@ -202,6 +222,7 @@ inline void write_run_txt(std::FILE* f, int argc, char** argv, Options& o) {
   std::fprintf(f, "\nseed: %llu\nepisodes: %d\nstrategies: %s\n",
                static_cast<unsigned long long>(o.seed), o.episodes, o.strategies.c_str());
   std::fprintf(f, "as_sigma: %.17g\nas_k: %.17g\n", o.calib.sigma, o.calib.k);
+  std::fprintf(f, "sigma_scale: %.17g\nk_scale: %.17g\n", o.sigma_scale, o.k_scale);
   std::fprintf(f, "params:");
   for (const ParamField& pf : param_fields(o.sim)) {
     if (pf.d) std::fprintf(f, " %s=%g", pf.name, *pf.d);
@@ -222,9 +243,9 @@ inline void write_comparisons(std::FILE* f, const std::string& prefix,
     const auto& b = specs[pairs[k].second];
     for (const NamedInterval& ni :
          paired_bootstrap(res[pairs[k].first], res[pairs[k].second], horizon, replicates, rng)) {
-      std::fprintf(f, "%s%s,%s,%d,%s,%.10g,%.10g,%.10g\n", prefix.c_str(), a.label.c_str(),
+      std::fprintf(f, "%s%s,%s,%d,%s,%.10g,%.10g,%.10g,%d\n", prefix.c_str(), a.label.c_str(),
                    b.label.c_str(), replicates, ni.name.c_str(), ni.iv.estimate, ni.iv.lo,
-                   ni.iv.hi);
+                   ni.iv.hi, ni.kept);
     }
   }
 }
