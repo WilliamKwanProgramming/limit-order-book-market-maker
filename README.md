@@ -36,7 +36,8 @@ All simulated or synthetic. Each value is copied from the file in the last colum
 | Same cell: Avellaneda-Stoikov minus symmetric (USD); ratio of the standard deviations of PnL | -125.8 [-134.7, -115.8]; 1.047 [1.031, 1.063] | Table 6 |
 | Same cell, same ratio, smallest and largest over the four perturbations of k and σ (1,000 episodes each) | 1.013 [0.994, 1.036] to 1.160 [1.128, 1.193] | Table 9 |
 | Bootstrap Monte Carlo error: largest move of a headline interval endpoint when recomputed with 10,000 instead of 1,000 replicates, as a share of the interval width | 3.5% | Table 10 |
-| Order book engine, replay of 20 million synthetic messages: median messages per second, GCC 13 Release, shared 2-core VM | 1.614e+07 (62.0 ns per message) | `results/core/bench.txt` |
+| Order book engine, replay of 20 million synthetic messages with a book of about 300 resting orders: median messages per second, GCC 13 Release, shared 2-core VM | 1.614e+07 (62.0 ns per message) | `results/core/bench.txt` |
+| Same engine and replay stream with about 1,000,000 resting orders instead of about 300 (one sweep, runs back to back; other processes used at most 0.02 CPUs): median messages per second | 2.60e+06 (384.3 ns per message), against 1.37e+07 (73.1 ns) at 311 orders in the same sweep | `results/core/bench_book_size.txt` |
 | LOBSTER-format replay, 2,000,000 synthetic messages with 10 levels: median messages per second for parse plus replay, and for parse plus replay plus validation against the order-book file | 3.72e+06 and 8.05e+05 | `results/lobster/tables.md`, Table 5 |
 | Rows of synthetic LOBSTER files whose replayed book differs from the file (six files of 500,000 messages, 1, 5 and 10 levels, strict policy) | 0 of 3,000,000 | `results/lobster/tables.md`, Table 1 |
 | Python bindings: bulk replay of 5,000,000 synthetic messages, median messages per second; one scalar call (`submit_limit` plus `cancel`), median ns per pair | 1.469e+07; 714.1 ns | `results/python/bench.txt` |
@@ -58,7 +59,7 @@ All simulated or synthetic. Each value is copied from the file in the last colum
 - **Simplified execution.** One asset, one lot per side, no fees or rebates, a fixed latency, no venue queueing, mark-to-market at the mid. The Avellaneda-Stoikov parameters are estimated in-sample on the same simulator.
 - **Limited sensitivity analysis.** The decomposition into skew and spread term and the sensitivity to the estimated volatility and decay rate are run in one simulator, for one asset, with one-at-a-time perturbations of fixed size in three cells; joint misestimation, other risk aversions in the stress grid, and inputs estimated under informed flow are not run. Intervals are per comparison, not corrected for the number of comparisons.
 - **Not an adverse-selection-free market.** In the uninformed baseline every strategy's fills are followed by a move of the mid against it (the 10-second markout is below the spread captured, Table 3 of `results/backtest/tables.md`); the half-spread covers it, so average markouts stay positive.
-- **Timing numbers are indicative.** They come from a shared 2-core cloud VM; the load average at the start and end of each benchmark is recorded in the output file.
+- **Timing numbers are indicative.** They come from a shared 2-core cloud VM; the load average at the start and end of each benchmark is recorded in the output file. The engine's headline rate is for a book of about 300 resting orders, which fits in cache; with 1,000,000 resting orders the same engine is four to five times slower (`core/README.md`).
 
 ## Build, test, reproduce
 

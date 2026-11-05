@@ -71,6 +71,31 @@ of the container. The vector was faster in 7 of 8 blocks on the replay stream (m
 1.14) and in 8 of 8 blocks on the matching stream (median ratio 1.20). Both variants pass all tests
 and produce identical fill checksums. A direct-indexed price ladder was **not** tried.
 
+**Larger books** (`results/core/bench_book_size.txt`, made by `core/bench/run_bench.sh
+--book-sizes`). The benchmark above holds about 300 orders. The same synthetic streams were also
+run with books of about 10,000, 100,000 and 1,000,000 resting orders, at about 50 resting orders
+per price level in the larger books (the build-up of the book is replayed but not timed), one run
+of 7 timings per size, back to back in one session. The script repeats a size if other processes used more than
+0.25 CPUs while it ran; none needed it, and they used at most 0.02 CPUs (last column).
+
+| Target orders | Depth (ticks) | Mean orders; mean price levels (replay stream) | Replay: median ns/msg (msgs/s) | Matching: median ns/msg (msgs/s) | Other processes' CPU use (CPUs) |
+|---|---|---|---|---|---|
+| 300 | 20 | 311; 41 | 73.1 (1.37e+07) | 93.6 (1.07e+07) | 0.01 |
+| 10,000 | 100 | 10,184; 200 | 128.5 (7.78e+06) | 137.5 (7.28e+06) | 0.02 |
+| 100,000 | 1,000 | 101,840; 1995 | 265.9 (3.76e+06) | 263.5 (3.80e+06) | 0.00 |
+| 1,000,000 | 10,000 | 1,017,722; 19945 | 384.3 (2.60e+06) | 387.0 (2.58e+06) | 0.00 |
+
+Between the 300-order and the 1,000,000-order book the median time per message rises by a factor
+of 5.3 on the replay stream and 4.1 on the matching stream. A resting order takes a 48-byte pool
+node, and the id hash table keeps at least two 16-byte slots per order, so a book of 1,000,000
+orders needs at least about 80 MB (computed from the structure sizes, not measured) against a
+2 MiB L2 cache per core and a 33 MiB shared L3 on this VM. The slowdown is probably mostly a
+cache effect, but no cache-miss counters were read, and the sorted price-level vectors also get
+long (about 20,000 levels at the largest size), so how much each contributes is not known. The
+300-order row (13.7 million messages per second) is below the 16.1 million of the table above,
+which came from a faster session of the same VM: compare the rows of this table with each other,
+not with the table above.
+
 ## Limitations
 
 No self-trade prevention, no order types beyond limit and market (no IOC/FOK/hidden/iceberg), no
