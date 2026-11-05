@@ -4,10 +4,10 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo"  # every path below is relative to the repository root, so none is recorded in results/
 build="${1:-build-paper}"
-bin="$repo/$build/paper/paper_replication"
-out="$repo/results/paper"
-cd "$repo"
+bin="$build/paper/paper_replication"
+out="results/paper"
 
 [[ -x "$bin" ]] || { echo "missing $bin: build it first (see paper/README.md)" >&2; exit 1; }
 mkdir -p "$out"
