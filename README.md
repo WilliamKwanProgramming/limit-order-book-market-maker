@@ -1,5 +1,7 @@
 # Limit Order Book Simulator and Market-Making Backtester
 
+[![CI](https://github.com/WilliamKwanProgramming/limit-order-book-market-maker/actions/workflows/ci.yml/badge.svg)](https://github.com/WilliamKwanProgramming/limit-order-book-market-maker/actions/workflows/ci.yml)
+
 A C++17 limit order book with price-time priority; a replayer that reads [LOBSTER](https://lobsterdata.com)-format files and compares the replayed book with the order-book file after every message; an event-driven simulator that tests Avellaneda-Stoikov quoting against symmetric and naive quoting, with and without bursts of informed order flow; and Python bindings.
 
 **Everything reported here comes from simulated or synthetic data.** No real LOBSTER file has been processed yet, and no parameter is calibrated to market data. [What this does not show](#what-this-does-not-show) lists the consequences.
