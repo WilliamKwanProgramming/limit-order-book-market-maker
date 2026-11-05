@@ -68,11 +68,16 @@ lenient where these matter and the replayer counts what it sees):
 here; sources in `docs/design.md`): a real window can start with a deletion or an execution of an
 order that the file never submits, so the strict run is expected to stop at message 1 and
 `--policy lenient --bootstrap` is the likely route (step 3 below), which has been tested only on
-the synthetic cut files; message rows end in a trailing comma (accepted); the opening and closing
-auction crosses are type 6 with order ids -1 and -2 (accepted, but the synthetic generator writes
-id 0); halt rows carry direction -1 (accepted, the generator writes 0); and the direction of
-type 5 rows is called not observable, so the buy/sell split of hidden executions in `--stats`
-should not be read as a side.
+the synthetic cut files; public readers read a seventh message column named `null` and drop it
+(an empty seventh field, that is one trailing comma, is accepted; a non-empty one is rejected);
+the opening and closing auction crosses are type 6 with order ids -1 and -2 (accepted, but the
+synthetic generator writes id 0); halt rows carry direction -1 (accepted, the generator writes 0);
+and the direction of type 5 rows is called not observable, so `--stats` labels its split of
+hidden executions by direction as written in the file, not as a buy/sell side. Rows in the form
+these pages show (halt, quoting and resume rows, both auction crosses, hidden executions with
+either direction, trailing commas) are covered by `lobster_test_format` and `lobster_test_replay`:
+they parse, leave the book unchanged, their order-book rows pass the unchanged-row check, and they
+are counted by type.
 
 ## Replay and anomaly policy
 
@@ -127,9 +132,10 @@ expected and actual levels) and the last mismatching message. Rows for types 5, 
 equal the previous row (counted separately).
 
 `--stats` adds: counts per type; executed volume per side (type 4 by resting side; type 5 by
-direction); the time-weighted mean spread, where the book after message $k$ is weighted by
-$t_{k+1} - t_k$ and only time with both sides non-empty counts; the time-weighted mean size at the
-best bid and at the best ask; and the fraction of messages after which a best price (or a best
+the direction as written in the file, labelled so because it is not a side, see above); the
+time-weighted mean spread, where the book after message $k$ is weighted by $t_{k+1} - t_k$ and
+only time with both sides non-empty counts; the time-weighted mean size at the best bid and at the
+best ask; and the fraction of messages after which a best price (or a best
 price or its size) differs from before.
 
 ## Command line
@@ -186,15 +192,17 @@ $K$ messages first and writes only what follows, so the files start with a non-e
 Tests (CTest, `ctest -R lobster`):
 
 - `lobster_test_format`: parser and reader edge cases (9-digit fractions, `34200`, `34200.1`,
-  CRLF, trailing commas, BOM, malformed rows of every kind, sentinels, level-count checks), plus
+  CRLF, trailing commas, BOM, malformed rows of every kind, sentinels, level-count checks, rows in
+  the form public sources show for halts, auction crosses and hidden executions), plus
   randomized comparisons against deliberately naive `std::string` reference parsers for time
   (200,000 strings) and integers (200,000), a message round trip (50,000 rows), and the line
   reader with random line lengths and buffer sizes down to 16 bytes.
 - `lobster_test_replay`: replay semantics of every message type against hand-computed books,
   every anomaly counter, strict versus lenient, the validator (a corrupted size flagged at exactly
   that message; price-structure versus size-only; empty side versus sentinel; type 5/6/7 rows),
-  file alignment errors, the bootstrap on a hand-built window, and `--stats` on hand-computed
-  examples.
+  file alignment errors, the bootstrap on a hand-built window, `--stats` on hand-computed
+  examples, and a session over rows in the real-file form (auction crosses, hidden executions,
+  halts, trailing commas).
 - `lobster_integration` (Python 3; skipped with code 77 if CMake finds no interpreter): four
   generated files of 200,000 messages (seeds 1-4, $N$ = 1, 5, 10, 10) must replay under the strict
   policy with zero anomalies, zero malformed rows and zero mismatches on every row; adding 1 to one

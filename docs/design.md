@@ -145,22 +145,27 @@ levels use ask price 9999999999, bid price -9999999999 and size 0.
   examples show this: the first row of a SAP window read in a university course is a type-3
   deletion of an order that the file never submits (see the sources below).
 - The order-book file shows only the top `N` levels, but the messages affect every level.
-- Public readers of the message file name a seventh column `null` and drop it, so rows end in a
-  trailing comma. The parser accepts one trailing empty field in message and order-book rows and
-  rejects a non-empty seventh field.
+- Public readers of the message file name a seventh column `null` and drop it, presumably because
+  rows end in a trailing comma (no source shows the raw bytes). The parser accepts one trailing
+  empty field in message and order-book rows and rejects a non-empty seventh field.
 - Cross trades in the opening and closing auctions are type-6 rows with order id -1 (opening) and
   -2 (closing) according to the same course. The parser accepts any id for type 6. The synthetic
   generator writes id 0 for cross trades and direction 0 for halts, which differs from the real
   files.
 - For executions against hidden orders (type 5) the course calls the direction "not observable"
-  and builds a proxy from prices, so the buy/sell split of type-5 rows in `--stats` should not be
-  read as a side.
+  and builds a proxy from prices, so `--stats` reports type-5 volume by "direction as written in
+  the file; not observable per the public course notes", not as a buy/sell side. Rows in the form
+  these sources show (halt rows, crosses with id -1 and -2, hidden executions, trailing commas) are
+  test fixtures in `lobster/tests/test_format.cpp` and `test_replay.cpp`.
 
 *Public sources read for these notes (pages, not files; no LOBSTER file has been processed):*
 the comments of LOBSTER's demo code as quoted at
 https://www.r-bloggers.com/2019/12/converting-lobster-demo-r-code-into-python (halt rows,
 sentinels, row layout) and the exercise at
 https://aef-course.ku.dk/exercises/high-frequency-econometrics.html (seventh column, auction ids,
-hidden-execution direction, first rows of a SAP window). The first page's comment lists the buy
-direction as -2, which contradicts the sample rows and the second page ("direction = 1 if executed
-against a limit buy order"); this repository uses +1 for buy.
+hidden-execution direction, first rows of a SAP window); the reader at
+https://voigtstefan.github.io/post/lobster-1 (seventh column); and the dataset viewer at
+https://huggingface.co/datasets/y7pan/lobster-data, which shows rows of LOBSTER's AAPL 2012-06-21
+sample, among them hidden executions with id 0 and direction -1 or +1. The first page's comment
+lists the buy direction as -2, which contradicts the sample rows and the second page ("direction =
+1 if executed against a limit buy order"); this repository uses +1 for buy.

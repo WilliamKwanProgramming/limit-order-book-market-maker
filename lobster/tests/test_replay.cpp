@@ -425,6 +425,62 @@ LOB_TEST(validator_empty_side_versus_sentinel) {
   LOB_CHECK(r.validation.first.actual.asks[0].empty());
 }
 
+// ---- Rows in the real-file form (sources are cited in test_format.cpp) --------------------------
+
+LOB_TEST(session_real_format_rows_leave_the_book_unchanged) {
+  // Two invented type-1 rows build a one-level book; the seven rows after them take the form that
+  // public sources show for real files: an opening cross (type 6, id -1), hidden executions
+  // (type 5, id 0) with direction -1 and +1, halt / quoting / resume rows (type 7, price -1, 0, 1,
+  // direction -1) and a closing cross (id -2). Some message and order-book rows end in a comma.
+  const std::string msgs =
+      "34200.1,1,101,100,5857200,1\n"
+      "34200.2,1,102,200,5857900,-1,\n"
+      "34200.25,6,-1,1500,5857500,-1,\n"
+      "34200.275072,5,0,100,5857900,-1\n"
+      "34200.417747,5,0,23,5857200,1,\n"
+      "36023,7,0,0,-1,-1,\n"
+      "36323,7,0,0,0,-1\n"
+      "36723,7,0,0,1,-1,\n"
+      "57600,6,-2,2400,5861000,-1\n";
+  std::vector<std::string> rows(9, "5857900,200,5857200,100");
+  rows[0] = "9999999999,0,5857200,100";
+  rows[3] += ",";
+  rows[6] += ",";
+  SessionOptions opt;  // strict policy
+  opt.stats = true;
+  const std::string book = join(rows);
+  const SessionResult r = session(msgs, &book, opt);
+  LOB_CHECK(r.fatal.empty());
+  LOB_CHECK_EQ(r.message_parse_errors + r.book_parse_errors, std::uint64_t{0});
+  LOB_CHECK_EQ(r.replay.messages, std::uint64_t{9});
+  LOB_CHECK_EQ(r.replay.total_anomalies(), std::uint64_t{0});
+  LOB_CHECK_EQ(r.final_orders, std::size_t{2});
+  LOB_CHECK_EQ(r.validation.checked, std::uint64_t{9});
+  LOB_CHECK_EQ(r.validation.mismatched, std::uint64_t{0});
+  LOB_CHECK_EQ(r.validation.unchanged_checked, std::uint64_t{7});
+  LOB_CHECK_EQ(r.validation.unchanged_violations, std::uint64_t{0});
+  LOB_CHECK_EQ(r.exit_code(), 0);
+  // Counted by type; hidden volume split by the direction written in the file.
+  LOB_CHECK_EQ(r.stats.by_type[5], std::uint64_t{2});
+  LOB_CHECK_EQ(r.stats.by_type[6], std::uint64_t{2});
+  LOB_CHECK_EQ(r.stats.by_type[7], std::uint64_t{3});
+  LOB_CHECK_EQ(r.stats.hidden_buy, Qty{23});
+  LOB_CHECK_EQ(r.stats.hidden_sell, Qty{100});
+  LOB_CHECK_EQ(r.stats.hidden_other, Qty{0});
+  LOB_CHECK_EQ(r.stats.executed_bid + r.stats.executed_ask, Qty{0});
+  LOB_CHECK_EQ(r.stats.best_quote_changes, std::uint64_t{2});
+
+  // The order-book row of the resume message changed: it differs from the row before it and from
+  // the engine (message 8), and the closing-cross row after it differs from it (message 9).
+  rows[7] = "5857900,150,5857200,100";
+  const std::string changed = join(rows);
+  const SessionResult c = session(msgs, &changed, opt);
+  LOB_CHECK_EQ(c.validation.unchanged_violations, std::uint64_t{2});
+  LOB_CHECK_EQ(c.validation.first_unchanged_violation_index, std::uint64_t{8});
+  LOB_CHECK_EQ(c.validation.mismatched, std::uint64_t{1});
+  LOB_CHECK_EQ(c.exit_code(), 1);
+}
+
 // ---- Session: alignment, malformed rows, exit codes ---------------------------------------------
 
 LOB_TEST(session_alignment_errors_are_fatal) {
