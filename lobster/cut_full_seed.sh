@@ -24,6 +24,12 @@ out="results/lobster/cut_full_seed"
 for b in "$replay_bin" "$full_bin"; do
   [[ -x "$b" ]] || { echo "missing $b: build it first (see lobster/README.md)" >&2; exit 1; }
 done
+# Recorded before anything is written (this script's own outputs would make the tree dirty).
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+  tree="has uncommitted changes relative to that commit"
+else
+  tree="clean"
+fi
 mkdir -p "$data"
 rm -rf "$out"
 mkdir -p "$out"
@@ -31,11 +37,7 @@ manifest="$out/MANIFEST.txt"
 {
   echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "commit: $(git rev-parse HEAD 2>/dev/null || echo unknown)"
-  if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-    echo "working tree: has uncommitted changes relative to that commit"
-  else
-    echo "working tree: clean"
-  fi
+  echo "working tree before the run: $tree"
   echo "compiler: $(grep -m1 CMAKE_CXX_COMPILER: "$build/CMakeCache.txt" | cut -d= -f2)"
   echo "build type: $(grep -m1 CMAKE_BUILD_TYPE: "$build/CMakeCache.txt" | cut -d= -f2)"
   echo "python: $(python3 --version 2>&1)"
