@@ -89,6 +89,9 @@ for levels in 1 5 10; do
   rm -f "$m" "$b"
 done
 
+# 2b. The same cut files with ghosts seeded from the complete book (own MANIFEST).
+run lobster/cut_full_seed.sh "$build" "$data"
+
 # 3. Throughput on a 2,000,000-message file (N = 10), 7 passes per stage.
 run python3 "$synth" --messages 2000000 --levels 10 --seed 301 --out "$data/bench" \
   > "$data/bench.gen.txt"
