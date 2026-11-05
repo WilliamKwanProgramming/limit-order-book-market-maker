@@ -30,18 +30,21 @@ k="$(awk -F, '$1=="k"{print $2}' "$out/calibration/calibration.csv")"
 
 # 2. Gamma grid: gamma = c / (sigma^2 T / 2), i.e. one lot of inventory moves the reservation
 #    price by c ticks at mid-horizon, c = 0.01, 0.03, 0.1, 0.3, 1 (half-decade grid).
-#    The stress test uses the middle value, c = 0.1.
+#    The stress test uses the middle value, c = 0.1. The symtv arms (A&S's time-varying spread, no
+#    skew) are appended after the original list, so the original arms' output does not change.
 read -r grid gmid < <(python3 -c "
 s, T = $sigma, 600.0
 g = [c / (s * s * T / 2) for c in (0.01, 0.03, 0.1, 0.3, 1.0)]
-print(','.join(f'as:{x:.6g},sym:{x:.6g}' for x in g), f'{g[2]:.6g}')")
+print(','.join(f'as:{x:.6g},sym:{x:.6g}' for x in g) + ','
+      + ','.join(f'symtv:{x:.6g}' for x in g), f'{g[2]:.6g}')")
 
-# 3. Uninformed baseline: gamma sweep against the symmetric benchmark and the naive quoter. Seed 202.
+# 3. Uninformed baseline: gamma sweep against the symmetric benchmark and the naive quoter, plus the
+#    symtv arm at each gamma (decomposition of A&S against Symmetric into skew and spread term). Seed 202.
 "$bin/backtest_run" --strategies "none,naive,$grid" --episodes $N --seed 202 --bootstrap 1000 \
   --as-sigma "$sigma" --as-k "$k" --out "$out/baseline"
 
 # 4. Stress grid: informed Hawkes flow, news rate x branching ratio (plus no informed flow). Seed 303.
-"$bin/stress_test" --strategies "none,naive,as:$gmid,sym:$gmid" \
+"$bin/stress_test" --strategies "none,naive,as:$gmid,sym:$gmid,symtv:$gmid" \
   --nu-grid 0,0.01,0.03,0.1 --nbr-grid 0.5,0.75,0.9 --episodes $N --seed 303 --bootstrap 1000 \
   --as-sigma "$sigma" --as-k "$k" --out "$out/stress"
 
