@@ -322,6 +322,12 @@ present every reference to a pre-cut order finds ghost size at its side and pric
 mismatch, the explanation in the Reading of Table 4 is incomplete, and the remaining mismatches
 will be classified here.
 
+Results (commands, seed, commit and whether the tree was clean in
+`results/lobster/cut_full_seed/MANIFEST.txt`; per-run `summary.txt` files next to it):
+
+<!-- cut-full-seed:begin -->
+<!-- cut-full-seed:end -->
+
 ## Build, test, reproduce
 
 ```sh
