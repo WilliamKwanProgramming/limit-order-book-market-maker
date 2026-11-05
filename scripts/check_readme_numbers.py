@@ -47,7 +47,7 @@ CHECKS = [
     (LOB, "| 0 | 0 | 0 | 500000 | 0 |", "0 of 3,000,000", 6),
     # Mutation checks and the paper replication.
     ("results/core/mutation_check.txt", "8 of 8 mutants caught", "8 of 8 mutants caught"),
-    ("results/lobster/mutation_check.txt", "12 of 12 mutants caught", "12 of 12 mutants caught"),
+    ("results/lobster/mutation_check.txt", "13 of 13 mutants caught", "13 of 13 mutants caught"),
     ("results/python/mutation_check.txt", "12 of 12 mutants caught", "12 of 12 mutants caught"),
     ("results/paper/tables.md", "30 lie within 2 standard deviations", "30 of the 30 statistics compared"),
 ]
