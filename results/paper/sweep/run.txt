@@ -1,4 +1,4 @@
-command: /home/claude/limit-order-book-market-maker/build-paper/paper/paper_replication --gamma 0.01,0.01259,0.01585,0.01995,0.02512,0.03162,0.03981,0.05012,0.0631,0.07943,0.1,0.1259,0.1585,0.1995,0.2512,0.3162,0.3981,0.5012,0.631,0.7943,1 --sims 10000 --seed 3 --per-sim 0 --bootstrap 500 --out results/paper/sweep
+command: build-release/paper/paper_replication --gamma 0.01,0.01259,0.01585,0.01995,0.02512,0.03162,0.03981,0.05012,0.0631,0.07943,0.1,0.1259,0.1585,0.1995,0.2512,0.3162,0.3981,0.5012,0.631,0.7943,1 --sims 10000 --seed 3 --per-sim 0 --bootstrap 500 --out results/paper/sweep
 seed: 3
 sims: 10000
 model: s0=100 sigma=2 T=1 A=140 k=1.5 steps=200 dt=0.005
