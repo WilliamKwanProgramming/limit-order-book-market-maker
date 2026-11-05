@@ -787,3 +787,6 @@ so common random numbers still hold.
   lots of 100 shares, and all reported quantities are in lots.
 - The flow-aware A&S extension (optional in the brief) was not implemented.
 - $\sigma$ is estimated at a 10 s sampling interval; the other scales are reported in Table 1.
+- The `MANIFEST.txt` of the committed results says "1 cores" because the script counted cores with
+  `nproc`, which honours `OMP_NUM_THREADS=1` (set for the run); the VM has 2 cores. The script now
+  uses `nproc --all`, so a regeneration will report 2.
