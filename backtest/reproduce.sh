@@ -4,10 +4,10 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo"  # every path below is relative to the repository root, so none is recorded in results/
 build="${1:-build-backtest}"
-bin="$repo/$build/backtest"
+bin="$build/backtest"
 out="results/backtest"
-cd "$repo"
 
 for b in backtest_run stress_test; do
   [[ -x "$bin/$b" ]] || { echo "missing $bin/$b: build it first (see backtest/README.md)" >&2; exit 1; }
