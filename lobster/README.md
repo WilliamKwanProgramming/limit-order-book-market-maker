@@ -191,9 +191,14 @@ Tests (CTest, `ctest -R lobster`):
   size in one row must give exactly one mismatching row, at that message; and on a cut file the
   strict run must stop at an unknown id while `--bootstrap` must at least halve the lenient
   mismatch rate (the measured rates are printed in the test log).
-- `python3 lobster/tests/mutation_check.py --out results/lobster/mutation_check.txt` applies 11
-  deliberate bugs one at a time to a temporary copy of the sources and requires at least one of
-  the three tests to fail for each (see Results).
+- `lobster_test_alloc`: a full session (parse, replay, validate, stats) over 12,000 and over
+  120,000 messages must make the same number of heap allocations (counted by replacing global
+  `operator new`), so nothing is allocated per message once the buffers exist.
+- `python3 lobster/tests/mutation_check.py --out results/lobster/mutation_check.txt` applies 12
+  deliberate bugs one at a time to a temporary copy of the sources (time scaling, CR handling, the
+  line reader's refill, the side of type 1, type 2 as a deletion, an anomaly check, two bootstrap
+  bugs, two validator bugs, stats weighting, a per-message allocation) and requires at least one
+  test program to fail for each. All 12 are caught (`results/lobster/mutation_check.txt`).
 
 ## Results
 
@@ -213,7 +218,7 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
 | 102 | 500000 | 5 | 0 | 0 | 0 | 500000 | 0 | 16942 of 16942 |
 | 102 | 500000 | 10 | 0 | 0 | 0 | 500000 | 0 | 16942 of 16942 |
 
-**Table 2.** What the synthetic files contain (from the generator's own counters).
+**Table 2.** What the synthetic files contain (from the generator's own counters). For one seed the message stream does not depend on N; only the order-book file does.
 
 | Seed | Levels N | Type 1 / 2 / 3 / 4 / 5 / 6 / 7 | Multi-row sweeps | Rows with an empty side | Rows with fewer than N levels | Rows sharing a timestamp |
 |---|---|---|---|---|---|---|
@@ -226,7 +231,7 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
 
 **Table 3.** `--stats` on the same files (toy flow; descriptive only). Spread in LOBSTER price units (1 = $0.0001; the toy grid is 100 units).
 
-| Seed | Levels N | Mean spread (ticks) | Mean best bid size | Mean best ask size | Messages changing a best price | Executed vs bids / asks |
+| Seed | Levels N | Mean spread (price units) | Mean best bid size | Mean best ask size | Messages changing a best price | Executed vs bids / asks |
 |---|---|---|---|---|---|---|
 | 101 | 1 | 139.1 | 690.8 | 693.9 | 7.7430% | 9997622 / 10279016 |
 | 101 | 5 | 139.1 | 690.8 | 693.9 | 7.7430% | 9997622 / 10279016 |
@@ -259,6 +264,30 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
 
 <!-- tables:end -->
 
+**Reading.**
+
+- Tables 1 and 2: on 3,000,000 checked rows (two seeds of 500,000 messages, each written with
+  three level counts) the engine's book
+  equals the Python book after every message, with no anomaly, and every type 5/6/7 row repeats
+  the previous row. The files contain multi-row sweeps, empty sides, rows with fewer than $N$
+  levels and repeated timestamps. This is agreement between two implementations written for this
+  repository, not a check against real data.
+- Table 4: a file that starts with a non-empty book stops at message 1 under the strict policy, as
+  intended. In this toy flow the last mismatching row is message 713 in every run (the book turns
+  over quickly), so even without the bootstrap only 0.03% to 0.14% of rows mismatch. The
+  bootstrap removes some of these (713 to 453 rows at $N = 10$) but not most. The remaining
+  mismatches come from levels that were deeper than $N$ at the start and later move into the top
+  $N$ (in the per-level counts of `summary.txt` they concentrate at the deepest levels). The
+  smaller $N$ is, the less the bootstrap can see: at $N = 1$ it resolves 6 references and leaves
+  66 unexplained. On real data, where orders may rest much longer, both the damage and what the
+  bootstrap can repair are unknown.
+- Table 5: on this shared VM, with the load average just under 1.3, the full pass (parse both
+  files, replay, compare 10 levels per side) ran at about 0.9 million messages per second, and
+  parse plus replay of the message file alone at about 4.7 million. The order-book file is 5.8
+  times larger than the message file (465 MB against 81 MB, sizes in `MANIFEST.txt`); how the
+  difference splits between parsing it and comparing levels was not measured. The core benchmark
+  (`core/README.md`) is not comparable: it replays from memory without parsing.
+
 ## Build, test, reproduce
 
 ```sh
@@ -278,7 +307,7 @@ python3 lobster/tests/mutation_check.py --out results/lobster/mutation_check.txt
 - Validation covers only the $N$ levels in the order-book file; deeper levels are replayed but not
   checked.
 - The synthetic flow is a toy: its book turns over within about a thousand messages and holds at
-  most a few hundred orders, so the cut experiment and the throughput figures say nothing about how
+  most about 130 orders, so the cut experiment and the throughput figures say nothing about how
   the bootstrap or the replay would fare on a real trading day.
 - Types 5, 6 and 7 are counted, never interpreted (no hidden-liquidity or auction modelling).
 - The replayer uses `lob::OrderBook` unchanged; any engine limitation (see `core/README.md`)

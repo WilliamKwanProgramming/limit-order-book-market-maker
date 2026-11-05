@@ -11,7 +11,7 @@
 | 102 | 500000 | 5 | 0 | 0 | 0 | 500000 | 0 | 16942 of 16942 |
 | 102 | 500000 | 10 | 0 | 0 | 0 | 500000 | 0 | 16942 of 16942 |
 
-**Table 2.** What the synthetic files contain (from the generator's own counters).
+**Table 2.** What the synthetic files contain (from the generator's own counters). For one seed the message stream does not depend on N; only the order-book file does.
 
 | Seed | Levels N | Type 1 / 2 / 3 / 4 / 5 / 6 / 7 | Multi-row sweeps | Rows with an empty side | Rows with fewer than N levels | Rows sharing a timestamp |
 |---|---|---|---|---|---|---|
@@ -24,7 +24,7 @@
 
 **Table 3.** `--stats` on the same files (toy flow; descriptive only). Spread in LOBSTER price units (1 = $0.0001; the toy grid is 100 units).
 
-| Seed | Levels N | Mean spread (ticks) | Mean best bid size | Mean best ask size | Messages changing a best price | Executed vs bids / asks |
+| Seed | Levels N | Mean spread (price units) | Mean best bid size | Mean best ask size | Messages changing a best price | Executed vs bids / asks |
 |---|---|---|---|---|---|---|
 | 101 | 1 | 139.1 | 690.8 | 693.9 | 7.7430% | 9997622 / 10279016 |
 | 101 | 5 | 139.1 | 690.8 | 693.9 | 7.7430% | 9997622 / 10279016 |

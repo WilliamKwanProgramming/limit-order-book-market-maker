@@ -24,7 +24,7 @@ std::vector<ParamField> param_fields(SimParams& p) {
         p.burn_in),
       d("markout-tail", "s", "timing", "longest markout horizon, so fills near T get markouts",
         p.markout_tail),
-      i("ref-price", "ticks", "background", "$100 at $0.01 per tick", p.ref_price),
+      i("ref-price", "ticks", "background", "100 USD at 0.01 USD per tick", p.ref_price),
       d("lo-rate", "1/s per side", "background",
         "limit-order rate at distance 1; with theta gives a few lots at the touch", p.lo_rate),
       d("lo-alpha", "-", "background",
