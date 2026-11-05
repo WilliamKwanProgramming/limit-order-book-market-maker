@@ -6,10 +6,12 @@ number with its interval) and a text that must occur in README.md. When a result
 its number changes, the first test fails; when the README is edited by hand and no longer quotes the
 number, the second fails. An optional fourth element is the number of times the file text must occur.
 It also fails when a relative link or image in README.md points to a file that does not exist.
-The module READMEs (core, paper, lobster, backtest, python) are checked more loosely: every number
-written with an interval, "x [lo, hi]", or with a standard error, "x ± e", must occur in that
-form in a text file (.md or .txt) under results/<module>/. Other numbers in their prose and the
-benchmark tables typed into core/ and python/ are not checked.
+Tables in VERBATIM must appear line for line in a module README, and the benchmark table of
+core/README.md is compared with results/core/bench.txt. The module READMEs (core, paper, lobster,
+backtest, python) are checked more loosely: every number written with an interval, "x [lo, hi]",
+or with a standard error, "x ± e", must occur in that form in a text file (.md or .txt) under
+results/<module>/. Other numbers in their prose and the benchmark tables typed into python/ are not
+checked.
 
 Usage: python3 scripts/check_readme_numbers.py      (exit status 1 on any problem)
 Standard library only.
@@ -68,6 +70,57 @@ CHECKS = [
     ("results/python/mutation_check.txt", "12 of 12 mutants caught", "12 of 12 mutants caught"),
     ("results/paper/tables.md", "30 lie within 2 standard deviations", "30 of the 30 statistics compared"),
 ]
+
+
+# Tables written by a results script and pasted verbatim into a module README: every line of the
+# first markdown table after the marker line of the results file must occur in the README.
+VERBATIM: list[tuple[str, str, str]] = []
+
+
+def table_after(text: str, marker: str) -> list[str]:
+    """Lines of the first markdown table that follows the first line starting with `marker`."""
+    lines = text.splitlines()
+    start = next(i for i, ln in enumerate(lines) if ln.startswith(marker))
+    rows: list[str] = []
+    for ln in lines[start + 1:]:
+        if ln.startswith("|"):
+            rows.append(ln)
+        elif rows:
+            break
+    return rows
+
+
+def core_snapshot_problems() -> list[str]:
+    """Rows of the benchmark table in core/README.md against results/core/bench.txt.
+
+    Each row `| replay (...) | best | median | worst | median msgs/s |` must carry the best,
+    median and worst ns per message printed under "<stream> timing over" in bench.txt, and the
+    median rate to the three significant digits the README gives it.
+    """
+    readme = (ROOT / "core" / "README.md").read_text(encoding="utf-8")
+    bench = (ROOT / "results" / "core" / "bench.txt").read_text(encoding="utf-8")
+    problems = []
+    for line in readme.splitlines():
+        if not re.match(r"\| (replay|matching) ", line):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 5 or not re.fullmatch(r"[\d.]+", cells[1]):
+            continue  # another table whose first cell starts with the same word
+        stream = cells[0].split()[0]
+        try:
+            block = bench.split(f"{stream} timing over", 1)[1]
+            for key, cell in zip(("best", "median", "worst"), cells[1:4]):
+                m = re.search(rf"^\s+{key}\s+([\d.]+)\s+([\d.e+]+)\s*$", block, re.M)
+                if float(m.group(1)) != float(cell):
+                    problems.append(f"core/README.md {stream} {key} {cell} ns/msg, "
+                                    f"bench.txt has {m.group(1)}")
+                if key == "median" and abs(float(m.group(2)) / float(cells[4]) - 1) > 0.006:
+                    problems.append(f"core/README.md {stream} median rate {cells[4]}, "
+                                    f"bench.txt has {m.group(2)}")
+        except (IndexError, AttributeError, ValueError):
+            problems.append(f"core/README.md row {line[:60]!r} cannot be matched to "
+                            "results/core/bench.txt")
+    return problems
 
 
 def broken_links(readme: str) -> list[str]:
@@ -129,6 +182,23 @@ def main() -> int:
             print(f"README.md does not contain {in_readme!r} (checked against {path})")
             problems += 1
     n_checks = len(CHECKS)
+    for results_file, marker, readme_file in VERBATIM:
+        n_checks += 1
+        try:
+            rows = table_after((ROOT / results_file).read_text(encoding="utf-8"), marker)
+            target = (ROOT / readme_file).read_text(encoding="utf-8")
+        except (FileNotFoundError, StopIteration):
+            print(f"{results_file} (marker {marker!r}) or {readme_file} not found")
+            problems += 1
+            continue
+        for row in rows:
+            if row not in target:
+                print(f"{readme_file} does not contain the line {row!r} of the table in {results_file}")
+                problems += 1
+    n_checks += 1
+    for problem in core_snapshot_problems():
+        print(problem)
+        problems += 1
     for module in MODULES:
         n_quoted, missing = missing_quoted_numbers(module)
         n_checks += 1
