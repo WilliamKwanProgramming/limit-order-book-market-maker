@@ -24,9 +24,8 @@ int main(int argc, char** argv) {
     return 2;
   }
   for (const StrategySpec& s : specs) {
-    if ((s.kind == StrategySpec::Kind::AS || s.kind == StrategySpec::Kind::Sym) &&
-        !o.calib_given) {
-      std::fprintf(stderr, "as/sym strategies need --as-sigma and --as-k\n");
+    if (uses_as_inputs(s.kind) && !o.calib_given) {
+      std::fprintf(stderr, "as/sym/symtv strategies need --as-sigma and --as-k\n");
       return 2;
     }
   }

@@ -1,5 +1,6 @@
 // Quoting rules: tick rounding, post-only clipping, inventory limit, and reduction of the A&S and
 // symmetric strategies to the paper module's formulas.
+#include <algorithm>
 #include <cmath>
 
 #include "lob/avellaneda_stoikov.hpp"
@@ -188,6 +189,79 @@ LOB_TEST(symmetric_uses_the_paper_average_spread) {
     const QuoteTarget q2 = st.quote(v);
     LOB_CHECK(q2.bid == q.bid && q2.ask == q.ask);
   }
+}
+
+LOB_TEST(symtv_equals_as_at_zero_inventory_at_every_time) {
+  for (double gamma : {0.0003, 0.004, 0.05}) {
+    AvellanedaStoikov as(as_params(gamma));
+    SymmetricTimeVarying tv(as_params(gamma));
+    Rng rng(13);
+    for (int i = 0; i < 5000; ++i) {
+      const Price bb = 10000 + static_cast<Price>(rng.uniform_int(std::int64_t{-3}, std::int64_t{3}));
+      const Price ba = bb + static_cast<Price>(rng.uniform_int(std::int64_t{1}, std::int64_t{4}));
+      StrategyView v = view(bb, ba, 0);
+      // Includes times past T (the requote just after T), where both cap t at T.
+      v.t = i == 0 ? 0.0 : rng.uniform(0.0, 610.0);
+      const QuoteTarget a = as.quote(v);
+      const QuoteTarget b = tv.quote(v);
+      LOB_CHECK(a.bid_on == b.bid_on && a.ask_on == b.ask_on);
+      LOB_CHECK(a.bid == b.bid && a.ask == b.ask && a.lots == b.lots);
+      const double tc = std::min(v.t, 600.0);
+      const paper::Quotes ra = as.raw(tc, v.mid, 0);
+      const paper::Quotes rb = tv.raw(tc, v.mid);
+      LOB_CHECK(ra.bid == rb.bid && ra.ask == rb.ask);  // bit for bit
+    }
+  }
+}
+
+LOB_TEST(symtv_is_symmetric_and_has_the_as_spread_at_the_same_time) {
+  for (double gamma : {0.0003, 0.004, 0.05}) {
+    const AsParams a = as_params(gamma);
+    const AvellanedaStoikov as(a);
+    const SymmetricTimeVarying tv(a);
+    const paper::ModelParams mp = to_paper_params(a);
+    for (double t : {0.0, 1.0, 299.95, 599.9, 600.0}) {
+      const double s = 10000.5;
+      const paper::Quotes r = tv.raw(t, s);
+      LOB_CHECK_NEAR(0.5 * (r.bid + r.ask), s, 1e-9);
+      LOB_CHECK_NEAR(r.ask - r.bid, paper::optimal_spread(t, gamma, mp), 1e-9);
+      const double sp2 = gamma * 0.49 * (600.0 - t) + 2.0 / gamma * std::log(1.0 + gamma / 1.5);
+      LOB_CHECK_NEAR(r.ask - r.bid, sp2, 1e-7);
+      for (Qty q : {Qty{-7}, Qty{3}}) {
+        const paper::Quotes ra = as.raw(t, s, q);
+        LOB_CHECK_NEAR(r.ask - r.bid, ra.ask - ra.bid, 1e-9);
+      }
+    }
+    // The spread narrows towards T (time-varying, unlike SymmetricMatched).
+    LOB_CHECK(tv.raw(0.0, 0.0).ask > tv.raw(500.0, 0.0).ask);
+  }
+}
+
+LOB_TEST(symtv_ignores_inventory_and_rounds_like_the_others) {
+  SymmetricTimeVarying st(as_params(0.003));
+  Rng rng(17);
+  for (int i = 0; i < 5000; ++i) {
+    const Price bb = 10000 + static_cast<Price>(rng.uniform_int(std::int64_t{-3}, std::int64_t{3}));
+    const Price ba = bb + static_cast<Price>(rng.uniform_int(std::int64_t{1}, std::int64_t{4}));
+    StrategyView v = view(bb, ba, static_cast<Qty>(rng.uniform_int(std::int64_t{-9}, std::int64_t{9})));
+    v.t = rng.uniform(0.0, 600.0);
+    const QuoteTarget q = st.quote(v);
+    const paper::Quotes r = st.raw(v.t, v.mid);
+    const QuoteTarget e = apply_quote_rules(r.bid, r.ask, true, true, v);
+    LOB_CHECK(q.bid_on == e.bid_on && q.ask_on == e.ask_on);
+    LOB_CHECK(q.bid == e.bid && q.ask == e.ask);
+    StrategyView flat = v;
+    flat.inventory = 0;
+    const QuoteTarget f = st.quote(flat);
+    LOB_CHECK(f.bid == q.bid && f.ask == q.ask);
+  }
+  // Inventory limit applies as for the other strategies.
+  StrategyView v = view(9990, 10010, 10);
+  QuoteTarget q = st.quote(v);
+  LOB_CHECK(!q.bid_on && q.ask_on);
+  v.mid_defined = false;
+  q = st.quote(v);
+  LOB_CHECK(!q.bid_on && !q.ask_on);
 }
 
 LOB_TEST(naive_joins_the_others_touch) {
