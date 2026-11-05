@@ -134,11 +134,33 @@ levels use ask price 9999999999, bid price -9999999999 and size 0.
 
 - A single incoming order that sweeps several resting orders appears as several type-4 messages
   with the same timestamp, so one message is not one trade.
-- Trading-halt rows (type 7) use unusual field values (for example price -1, 0 or 1 to signal a
-  state, and a direction that is not a side). Parse them without applying the buy/sell and
+- Trading-halt rows (type 7) use unusual field values: id 0, size 0, price -1 (halt), 0 (quoting)
+  or 1 (resume), and direction -1 according to LOBSTER's documentation as quoted in its demo code;
+  the order-book row repeats the previous one. Parse them without applying the buy/sell and
   positive-price rules that hold for the other types, and never let them change the book. Type 5
   and type 6 rows likewise leave the visible book unchanged.
 - A message file that starts after the open can mention orders that were submitted earlier and so
   never appear as a type-1 row, even though the order-book file already contains them. A replayer
-  has to decide what to do with such ids; it must count them and say how it treated them.
+  has to decide what to do with such ids; it must count them and say how it treated them. Public
+  examples show this: the first row of a SAP window read in a university course is a type-3
+  deletion of an order that the file never submits (see the sources below).
 - The order-book file shows only the top `N` levels, but the messages affect every level.
+- Public readers of the message file name a seventh column `null` and drop it, so rows end in a
+  trailing comma. The parser accepts one trailing empty field in message and order-book rows and
+  rejects a non-empty seventh field.
+- Cross trades in the opening and closing auctions are type-6 rows with order id -1 (opening) and
+  -2 (closing) according to the same course. The parser accepts any id for type 6. The synthetic
+  generator writes id 0 for cross trades and direction 0 for halts, which differs from the real
+  files.
+- For executions against hidden orders (type 5) the course calls the direction "not observable"
+  and builds a proxy from prices, so the buy/sell split of type-5 rows in `--stats` should not be
+  read as a side.
+
+*Public sources read for these notes (pages, not files; no LOBSTER file has been processed):*
+the comments of LOBSTER's demo code as quoted at
+https://www.r-bloggers.com/2019/12/converting-lobster-demo-r-code-into-python (halt rows,
+sentinels, row layout) and the exercise at
+https://aef-course.ku.dk/exercises/high-frequency-econometrics.html (seventh column, auction ids,
+hidden-execution direction, first rows of a SAP window). The first page's comment lists the buy
+direction as -2, which contradicts the sample rows and the second page ("direction = 1 if executed
+against a limit buy order"); this repository uses +1 for buy.

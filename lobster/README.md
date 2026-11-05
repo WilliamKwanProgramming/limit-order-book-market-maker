@@ -64,6 +64,16 @@ lenient where these matter and the replayer counts what it sees):
   book, so reuse after removal replays correctly; a type 1 for an id still resting is counted as a
   duplicate.
 
+**What public pages show** (web pages and course material read on 2026-11-05, not a file processed
+here; sources in `docs/design.md`): a real window can start with a deletion or an execution of an
+order that the file never submits, so the strict run is expected to stop at message 1 and
+`--policy lenient --bootstrap` is the likely route (step 3 below), which has been tested only on
+the synthetic cut files; message rows end in a trailing comma (accepted); the opening and closing
+auction crosses are type 6 with order ids -1 and -2 (accepted, but the synthetic generator writes
+id 0); halt rows carry direction -1 (accepted, the generator writes 0); and the direction of
+type 5 rows is called not observable, so the buy/sell split of hidden executions in `--stats`
+should not be read as a side.
+
 ## Replay and anomaly policy
 
 | Message | Engine call |

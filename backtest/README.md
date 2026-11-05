@@ -148,7 +148,8 @@ $c = \gamma\sigma^2 T/2$ ticks. The grid is $c \in \{0.01, 0.03, 0.1, 0.3, 1\}$ 
 i.e. $\gamma = 2c/(\hat\sigma^2 T)$: at $c = 0.01$ even an inventory of $Q_{max}$ moves the
 reservation price by only 0.1 tick (negligible next to the rounding to whole ticks); at $c = 1$
 one lot moves it by a full tick, twice the typical half-spread, so the skew dominates the quote.
-The stress test uses the middle value $c = 0.1$, fixed before any stress result was seen.
+The stress test uses the middle value $c = 0.1$. (The history cannot show whether this was fixed
+before the stress grid was first run, because the backtest module was committed in one piece.)
 
 ## Metrics
 
@@ -361,19 +362,24 @@ tick, the touch holds a few lots, uninformed market-order counts are Poisson (di
 the realized volatility of the mid changes little between the 1 s and 60 s sampling scales, so
 the mid behaves roughly like a diffusion there; at 0.1 s bid-ask bounce raises it. The A&S
 qualitative result carries over from the paper's reduced-form model to this order book: against
-the symmetric benchmark at the same $\gamma$, inventory-aware quoting lowers the SD of PnL and of
-terminal inventory, more so as $\gamma$ grows, at the cost of a lower mean PnL; from $c = 0.03$
-up its mean/SD ratio is higher than the benchmark's (Tables 3 and 4). Two effects that the paper's
-model does not have:
+the symmetric benchmark at the same $\gamma$, A&S quoting lowers the SD of PnL and of terminal
+inventory, more so as $\gamma$ grows, at the cost of a lower mean PnL; from $c = 0.03$ up its
+mean/SD ratio is higher than the benchmark's (Tables 3 and 4). This comparison changes two things
+at once: A&S skews its quotes with inventory and also lets its spread narrow as $T$ approaches (the
+term $\gamma\sigma^2(T-t)$), while the symmetric benchmark quotes a constant spread (the time
+average of A&S's) with no skew. A symmetric arm with A&S's time-varying spread is not run here, so the reductions are not attributed to the inventory
+skew alone. Two effects that the paper's model does not have:
 
 - *Tick rounding.* The symmetric benchmark's half-spread lies between half a tick and one tick for
   most of the grid, so after flooring the bid and ceiling the ask it quotes the same prices for
-  several $\gamma$ values (the "distinct results" bullet above). A&S changes with $\gamma$ only
-  because the inventory skew moves its quotes across tick boundaries.
+  several $\gamma$ values (the "distinct results" bullet above). A&S changes with $\gamma$ through
+  both the inventory skew and its spread term, which move its quotes across tick boundaries.
 - *Queue position.* The naive touch-joiner has the highest mean PnL and three times as many fills
   as the others, with roughly the benchmark's PnL SD. Quoting at the touch earns less per fill
-  but fills far more often, and in this market there is no adverse selection on average (all
-  uninformed markouts are positive). A&S at the larger $\gamma$ values has a higher mean/SD than
+  but fills far more often. Fills are adversely selected for every strategy (the 10 s markout is
+  below the spread captured at the fill, by 0.29 ticks for NaiveTouch and 0.64 for the symmetric
+  quoter at c = 0.1, Table 3), but less so at the touch, and the half-spread more than covers it
+  (all uninformed markouts are positive). A&S at the larger $\gamma$ values has a higher mean/SD than
   NaiveTouch, but a lower mean.
 
 The $k$ fit is the weakest input. Market-order reach decays roughly exponentially beyond the
@@ -391,8 +397,11 @@ one tick behind the touch most of the time.
   `stress.png`).
 - The losses come after the fill, not at it: spread captured per fill hardly changes across the
   grid, while 10 s markouts fall and turn negative as bursts grow. Fill rates rise with informed
-  flow because there are more market orders, so the strategies trade more exactly when trading
-  is most costly.
+  flow: market orders arrive about twice as often in the strongest cell (Table 1), and the fills of
+  A&S at c = 0.1 per quote-second triple (0.058 to 0.171, Tables 3 and 5), which is more than the
+  order rate alone explains. A possible reason, not tested, is that burst orders are larger and so
+  reach quotes behind the touch. Either way the strategies trade more exactly when trading is
+  most costly.
 - The Poisson-fill assumption behind A&S fails under bursts. Fill-count dispersion for A&S and
   the symmetric benchmark is already somewhat above 1 without informed flow (a possible reason, not tested
   separately: their quotes usually sit one tick behind the touch, so only market orders that
