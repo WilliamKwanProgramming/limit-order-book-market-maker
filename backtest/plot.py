@@ -65,7 +65,7 @@ def frontier():
     d = s[s.kind == "naive"]
     ax.errorbar(d.sd_pnl, d.mean_pnl, yerr=1.96 * d.sd_pnl / np.sqrt(d.n), color=COLOR["naive"],
                 marker="D", ms=6, capsize=2, ls="none", label="NaiveTouch")
-    ax.set(xlabel="SD of episode PnL ($)", ylabel="Mean episode PnL ($), 95% CI",
+    ax.set(xlabel="SD of episode PnL ($)", ylabel="Mean episode PnL ($) ± 1.96 SE",
            title=f"Uninformed market: PnL against risk ({n} episodes, seed {seed('baseline')})",
            xlim=(0, None))
     ax.legend(loc="lower right")
