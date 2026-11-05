@@ -511,7 +511,12 @@ def main():
     est = (f"**A&S estimates** (calibration run, {n_cal} episodes, seed {seeds['calibration']}): "
            f"σ = {SIGMA:.4f} ticks/√s (10 s returns), k = {K:.4f} per tick, "
            f"A = {float(CAL['A']):.4f} per second per side, R² of the log-linear fit "
-           f"{float(CAL['k_fit_r2']):.3f} over {n_used} points.")
+           f"{float(CAL['k_fit_r2']):.3f} over {n_used} points. The points are cumulative counts, so each "
+           "contains the next and they are strongly dependent: R² overstates how well one "
+           "exponential describes the data, and the fit misses the rate at the touch by about a "
+           "factor of two (Table 2a), partly by construction, since every market order reaches "
+           "at least half a tick. No interval is given for k or σ here; Table 8 gives their "
+           "sampling spread across blocks of episodes.")
     parts = [
         f"**Table 1. Market diagnostics** (strategy None; {n_cal} episodes for the calibration "
         f"run, {n_stress} per stress cell, seed {seeds['stress']}). σ is realized volatility of the "
