@@ -58,43 +58,48 @@ which is git-ignored.
 
 ## Core order book contract (`core/`)
 
-The engine is single-threaded. It supports two modes on the same data structures.
+`core/include/lob/order_book.hpp` is the authoritative description (every function, edge case and
+complexity is documented there); this section is the summary other modules rely on. The engine is
+single-threaded and supports two modes on the same data structures.
 
-**Matching mode** (used by the simulator), price-time priority:
+**Matching mode** (used by the simulator), price-time priority. Each call that can trade appends
+`Fill` records to a caller-owned `std::vector<Fill>` (never cleared by the book) and returns a
+`SubmitResult{status, filled, resting}`:
 
-- `submit_limit(id, side, price, qty, ts)`: any part that crosses the opposite best price trades
-  immediately, best price first and oldest first within a level, at the resting order's price. The
-  remainder rests at `price`.
-- `submit_market(id, side, qty, ts)`: sweeps the opposite side up to `qty`. The unfilled part is
-  discarded.
-- `cancel(id)`: removes an order entirely.
-- `reduce(id, by_qty)`: partial cancel that keeps queue position; removes the order if nothing
-  remains.
-- `replace(id, new_price, new_qty)`: keeps priority only if the price is unchanged and the size
-  does not increase; otherwise the order goes to the back of the queue. It may cross and then
-  matches.
-- Fills are reported with resting id, aggressor id, resting side, price (the resting order's), size
-  and time, without allocating per fill in steady state.
+- `submit_limit(id, side, price, qty, ts, fills)`: any part that crosses the opposite best price
+  trades immediately, best price first and oldest first within a level, at the resting order's
+  price. The remainder rests at `price`.
+- `submit_market(id, side, qty, ts, fills)`: sweeps the opposite side up to `qty`. The unfilled
+  part is discarded.
+- `replace(id, new_price, new_qty, ts, fills)`: `new_qty` is the new remaining size. Priority is
+  kept only if the price is unchanged and the size does not increase; otherwise the order goes to
+  the back of the queue with timestamp `ts`, and it may cross and then match.
+- `cancel(id)` removes an order. `reduce(id, by_qty)` is a partial cancel that keeps queue
+  position and removes the order if `by_qty >= remaining`. Both return a `Status`.
+- A `Fill` carries resting id, aggressor id, resting side, price (the resting order's), size, the
+  time of the aggressing call and the resting order's remaining size after the fill.
 
 **Replay mode** (used for LOBSTER data), where executions arrive as separate messages:
 
-- `add_resting(id, side, price, qty, ts)`: adds an order without matching. The book is allowed to
-  be locked or crossed in this mode.
-- `execute_resting(id, qty)`: reduces a resting order as if executed against an external
-  aggressor, and reports a fill with `aggressor_id = kNoOrder`.
-- `cancel` and `reduce` as above.
+- `add_resting(id, side, price, qty, ts)`: adds an order without matching. The book may become
+  locked or crossed.
+- `execute_resting(id, qty, ts, fills)`: executes `min(qty, remaining)` of a resting order as if
+  against an external aggressor and appends one fill with `aggressor_id = kNoOrder`.
+- `cancel` and `reduce` as above. The two modes may be mixed on one book.
 
-**Queries**, constant time unless noted: best bid and best ask (aggregated size and order count),
-mid price, spread, top-`n` aggregated levels on each side (`depth`), lookup of an order by id
-(side, price, remaining size, timestamp), `queue_ahead(id)` (shares ahead of the order in its price
-level), number of orders, number of price levels, and total size per side.
+**Queries.** Constant time unless noted: `best(side)`, `best_bid`, `best_ask` (price, aggregated
+size, order count), `mid` (ticks, as double), `spread`, `front(side)` (oldest order at the best
+price), `find(id)` (side, price, remaining size, queue timestamp), `order_count`, `level_count`,
+`total_qty`. `depth(side, n, out)` is O(n). `queue_ahead(id)` is O(position in its level), not
+constant. `check_invariants(require_uncrossed, why)` is linear and meant for tests: pass
+`require_uncrossed = false` for replay mode.
 
-**Checks.** `check_invariants()` (linear time, for tests): per-level size equals the sum of its
-orders, the id index matches the levels, price levels are sorted and non-empty, and in matching
-mode the best bid is below the best ask.
-
-Errors (unknown id, duplicate id, non-positive size or price) are reported through return codes,
-never exceptions. The header documents the complexity and edge cases of every function.
+**Errors** are reported through `Status` (`Ok`, `InvalidId`, `InvalidPrice`, `InvalidQty`,
+`DuplicateId`, `UnknownId`) and never thrown; a rejected call leaves the book unchanged. Id 0 is
+reserved (`kNoOrder`). Ids are not remembered once an order leaves the book, so they may be reused.
+An id that is already resting is rejected as `DuplicateId`, also for market orders. `reduce` and
+`execute_resting` cap an oversized quantity at what remains instead of rejecting it. There is no
+self-trade prevention (orders carry no owner).
 
 ## LOBSTER format notes (`lobster/`)
 
@@ -112,3 +117,16 @@ is the side of the resting order that was hit.
 *Order-book file*, no header, one row per message giving the book state **after** that message,
 with `N` levels as `ask price, ask size, bid price, bid size` repeated for levels 1 to `N`. Empty
 levels use ask price 9999999999, bid price -9999999999 and size 0.
+
+*Points to treat with care.* None of these has been checked against a real file in this repository.
+
+- A single incoming order that sweeps several resting orders appears as several type-4 messages
+  with the same timestamp, so one message is not one trade.
+- Trading-halt rows (type 7) use unusual field values (for example price -1, 0 or 1 to signal a
+  state, and a direction that is not a side). Parse them without applying the buy/sell and
+  positive-price rules that hold for the other types, and never let them change the book. Type 5
+  and type 6 rows likewise leave the visible book unchanged.
+- A message file that starts after the open can mention orders that were submitted earlier and so
+  never appear as a type-1 row, even though the order-book file already contains them. A replayer
+  has to decide what to do with such ids; it must count them and say how it treated them.
+- The order-book file shows only the top `N` levels, but the messages affect every level.
