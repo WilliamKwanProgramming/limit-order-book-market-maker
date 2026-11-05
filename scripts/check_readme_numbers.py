@@ -58,6 +58,9 @@ CHECKS = [
     (BT, "Largest move: 3.5% of the width, within the 5% threshold", "| 3.5% |"),
     # Engine, LOBSTER replay, Python bindings: timings (they change whenever the benchmark is rerun).
     ("results/core/bench.txt", "1.614e+07", "1.614e+07"),
+    ("results/core/bench_book_size.txt", "| 1,000,000 | 10,000 | 1,017,722; 19945 | 384.3 (2.60e+06) |", "2.60e+06 (384.3 ns per message)"),
+    ("results/core/bench_book_size.txt", "| 300 | 20 | 311; 41 | 73.1 (1.37e+07) |", "1.37e+07 (73.1 ns) at 311 orders"),
+    ("results/core/bench_book_size.txt", "| 10,000 | 100 | 10,184; 200 | 128.5 (7.78e+06) | 137.5 (7.28e+06) | 0.02 |", "at most 0.02 CPUs"),
     (LOB, "| parse+replay | 2000000 | 4.32e+06 | 3.72e+06 | 3.1e+06 |", "3.72e+06"),
     (LOB, "| parse+replay+validate | 2000000 | 8.74e+05 | 8.05e+05 | 6.88e+05 |", "8.05e+05"),
     ("results/python/bench.txt", "msgs/s median 1.469e+07", "1.469e+07"),
@@ -74,7 +77,9 @@ CHECKS = [
 
 # Tables written by a results script and pasted verbatim into a module README: every line of the
 # first markdown table after the marker line of the results file must occur in the README.
-VERBATIM: list[tuple[str, str, str]] = []
+VERBATIM: list[tuple[str, str, str]] = [
+    ("results/core/bench_book_size.txt", "## Summary", "core/README.md"),
+]
 
 
 def table_after(text: str, marker: str) -> list[str]:
