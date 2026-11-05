@@ -51,6 +51,7 @@ const char* kind_name(StrategySpec::Kind k) {
     case StrategySpec::Kind::Sym: return "sym";
     case StrategySpec::Kind::Naive: return "naive";
     case StrategySpec::Kind::Fixed: return "fixed";
+    case StrategySpec::Kind::SymTV: return "symtv";
   }
   return "?";
 }
@@ -70,8 +71,10 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
       s.kind = StrategySpec::Kind::None;
     } else if (head == "naive" && arg.empty()) {
       s.kind = StrategySpec::Kind::Naive;
-    } else if (head == "as" || head == "sym") {
-      s.kind = head == "as" ? StrategySpec::Kind::AS : StrategySpec::Kind::Sym;
+    } else if (head == "as" || head == "sym" || head == "symtv") {
+      s.kind = head == "as"    ? StrategySpec::Kind::AS
+               : head == "sym" ? StrategySpec::Kind::Sym
+                               : StrategySpec::Kind::SymTV;
       ok = to_double(arg, s.param) && s.param > 0.0;
     } else if (head == "fixed") {
       s.kind = StrategySpec::Kind::Fixed;
@@ -80,12 +83,18 @@ bool parse_strategies(const std::string& list, std::vector<StrategySpec>& out, s
       ok = false;
     }
     if (!ok) {
-      err = "bad strategy '" + part + "' (none, naive, as:<gamma>, sym:<gamma>, fixed:<ticks>)";
+      err = "bad strategy '" + part + "' (none, naive, as:<gamma>, sym:<gamma>, symtv:<gamma>, "
+            "fixed:<ticks>)";
       return false;
     }
     out.push_back(s);
   }
   return true;
+}
+
+bool uses_as_inputs(StrategySpec::Kind k) noexcept {
+  return k == StrategySpec::Kind::AS || k == StrategySpec::Kind::Sym ||
+         k == StrategySpec::Kind::SymTV;
 }
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
@@ -102,6 +111,7 @@ std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& 
     case StrategySpec::Kind::Sym: return std::make_unique<SymmetricMatched>(a);
     case StrategySpec::Kind::Naive: return std::make_unique<NaiveTouch>();
     case StrategySpec::Kind::Fixed: return std::make_unique<FixedOffset>(s.param);
+    case StrategySpec::Kind::SymTV: return std::make_unique<SymmetricTimeVarying>(a);
   }
   return std::make_unique<NeverQuote>();
 }
@@ -382,6 +392,16 @@ std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
   for (std::size_t i = 0; i < specs.size(); ++i) {
     if (specs[i].kind == StrategySpec::Kind::Sym && naive >= 0)
       out.emplace_back(i, static_cast<std::size_t>(naive));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::AS) continue;
+    const long tv = find(StrategySpec::Kind::SymTV, specs[i].param);
+    if (tv >= 0) out.emplace_back(i, static_cast<std::size_t>(tv));
+  }
+  for (std::size_t i = 0; i < specs.size(); ++i) {
+    if (specs[i].kind != StrategySpec::Kind::SymTV) continue;
+    const long sym = find(StrategySpec::Kind::Sym, specs[i].param);
+    if (sym >= 0) out.emplace_back(i, static_cast<std::size_t>(sym));
   }
   return out;
 }

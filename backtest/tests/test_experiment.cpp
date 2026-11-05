@@ -17,7 +17,12 @@ LOB_TEST(parses_strategy_lists) {
   LOB_CHECK(s[3].kind == StrategySpec::Kind::Sym && s[3].param == 0.002);
   LOB_CHECK(s[4].kind == StrategySpec::Kind::Fixed && s[4].param == 1.5);
   LOB_CHECK_EQ(s[3].label, std::string("sym:2e-3"));
-  for (const char* bad : {"as", "as:0", "as:-1", "sym:x", "fixed:-1", "foo", "naive:1", ""}) {
+  LOB_CHECK(parse_strategies("symtv:0.004", s, err));
+  LOB_CHECK(s[0].kind == StrategySpec::Kind::SymTV && s[0].param == 0.004);
+  LOB_CHECK(uses_as_inputs(StrategySpec::Kind::SymTV) && uses_as_inputs(StrategySpec::Kind::Sym) &&
+            uses_as_inputs(StrategySpec::Kind::AS) && !uses_as_inputs(StrategySpec::Kind::Naive));
+  for (const char* bad : {"as", "as:0", "as:-1", "sym:x", "fixed:-1", "foo", "naive:1", "",
+                          "symtv", "symtv:0"}) {
     LOB_CHECK(!parse_strategies(bad, s, err));
   }
 }
@@ -32,6 +37,24 @@ LOB_TEST(comparison_pairs_match_gammas) {
   LOB_CHECK(p[0] == std::make_pair(std::size_t{1}, std::size_t{2}));
   LOB_CHECK(p[1] == std::make_pair(std::size_t{1}, std::size_t{0}));
   LOB_CHECK(p[2] == std::make_pair(std::size_t{3}, std::size_t{0}));
+}
+
+LOB_TEST(symtv_pairs_come_after_the_existing_pairs) {
+  std::vector<StrategySpec> s, old;
+  std::string err;
+  LOB_CHECK(parse_strategies("naive,as:0.1,sym:0.1,as:0.2,sym:0.2", old, err));
+  LOB_CHECK(parse_strategies("naive,as:0.1,sym:0.1,as:0.2,sym:0.2,symtv:0.1,symtv:0.2", s, err));
+  const auto po = comparison_pairs(old);
+  const auto p = comparison_pairs(s);
+  // The existing pairs keep their positions (and so their bootstrap streams).
+  LOB_CHECK_EQ(p.size(), po.size() + 4);
+  for (std::size_t i = 0; i < po.size(); ++i) LOB_CHECK(p[i] == po[i]);
+  const std::size_t n = po.size();
+  // as:g vs symtv:g for each g, then symtv:g vs sym:g.
+  LOB_CHECK(p[n] == std::make_pair(std::size_t{1}, std::size_t{5}));
+  LOB_CHECK(p[n + 1] == std::make_pair(std::size_t{3}, std::size_t{6}));
+  LOB_CHECK(p[n + 2] == std::make_pair(std::size_t{5}, std::size_t{2}));
+  LOB_CHECK(p[n + 3] == std::make_pair(std::size_t{6}, std::size_t{4}));
 }
 
 LOB_TEST(summary_pools_ratios) {

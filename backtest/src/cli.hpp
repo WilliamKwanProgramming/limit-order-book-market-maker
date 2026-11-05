@@ -64,13 +64,14 @@ inline bool parse_list(const char* s, std::vector<double>& out) {
 inline void usage(std::FILE* f, const char* prog, bool grid) {
   std::fprintf(f, "usage: %s [options]\n", prog);
   std::fprintf(f,
-               "  --strategies LIST  none, naive, as:<gamma>, sym:<gamma>, fixed:<ticks>\n"
+               "  --strategies LIST  none, naive, as:<gamma>, sym:<gamma>, symtv:<gamma>,\n"
+               "                     fixed:<ticks>\n"
                "  --episodes N       episodes per strategy%s (default 100)\n"
                "  --seed S           master seed (default 1)\n"
                "  --out DIR          output directory\n"
                "  --bootstrap B      paired bootstrap replicates, 0 to skip (default 1000)\n"
-               "  --as-sigma X       A&S sigma estimate, ticks/sqrt(s) (required for as/sym)\n"
-               "  --as-k X           A&S k estimate, 1/tick (required for as/sym)\n"
+               "  --as-sigma X       A&S sigma estimate, ticks/sqrt(s) (required for as/sym/symtv)\n"
+               "  --as-k X           A&S k estimate, 1/tick (required for as/sym/symtv)\n"
                "  --calibrate 0|1    also write calibration.csv and reach.csv from strategy none\n"
                "  --list-params FILE write the parameter table (CSV) and exit\n",
                grid ? " and grid cell" : "");

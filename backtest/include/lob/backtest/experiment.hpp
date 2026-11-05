@@ -15,11 +15,11 @@
 
 namespace lob::backtest {
 
-// "none", "naive", "as:<gamma>", "sym:<gamma>", "fixed:<offset ticks>".
+// "none", "naive", "as:<gamma>", "sym:<gamma>", "symtv:<gamma>", "fixed:<offset ticks>".
 struct StrategySpec {
-  enum class Kind { None, AS, Sym, Naive, Fixed };
+  enum class Kind { None, AS, Sym, Naive, Fixed, SymTV };
   Kind kind = Kind::None;
-  double param = 0.0;  // gamma for AS and Sym, offset for Fixed
+  double param = 0.0;  // gamma for AS, Sym and SymTV, offset for Fixed
   std::string label;   // the spec string as given
 };
 
@@ -31,6 +31,9 @@ struct AsCalibration {
   double sigma = 0.0;
   double k = 0.0;
 };
+
+// True for the strategies built from the A&S inputs (as, sym, symtv).
+bool uses_as_inputs(StrategySpec::Kind k) noexcept;
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
                                         const AsCalibration& c);
@@ -103,8 +106,10 @@ void write_summary_row(std::FILE* f, const std::string& prefix, const StrategySp
 void write_diagnostics_header(std::FILE* f, const char* prefix);
 void write_diagnostics_row(std::FILE* f, const std::string& prefix, const StrategySpec& spec,
                            const MarketDiagnostics& d);
-// Pairs compared: (as:g, sym:g), (as:g, naive) and (sym:g, naive) for every g, when both
-// members are present. Returned as indices into `specs`.
+// Pairs compared, when both members are present: (as:g, sym:g), (as:g, naive) and (sym:g, naive)
+// for every g, then (as:g, symtv:g) and (symtv:g, sym:g). The symtv pairs come last so that adding
+// symtv arms leaves the index (and so the bootstrap stream) of every other pair unchanged.
+// Returned as indices into `specs`.
 std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
     const std::vector<StrategySpec>& specs);
 

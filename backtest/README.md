@@ -125,6 +125,10 @@ $q + 1 > Q_{max}$, no ask if $q - 1 < -Q_{max}$; requote every 100 ms.
   per tick, $\gamma$ per (tick $\cdot$ lot).
 - **SymmetricMatched**: quotes $s \mp \bar s/2$, where $\bar s$ is the A&S spread averaged over
   the quoting times (the paper's benchmark, `paper::Strategy::Symmetric`); no inventory term.
+- **SymmetricTimeVarying** (`symtv`): quotes $s \mp \delta(t)/2$ with A&S's spread at the current
+  time, $\delta(t) = \gamma\sigma^2(T-t) + \tfrac{2}{\gamma}\ln(1 + \gamma/k)$, and no inventory term
+  (`paper::Strategy::SymmetricTimeMatched`). It equals A&S whenever $q = 0$, so A&S against it
+  isolates the skew and it against SymmetricMatched isolates the time variation of the spread.
 - **NaiveTouch**: joins the best bid and best ask of the book without our orders; no inventory
   term.
 - **FixedOffset** (probe, calibration only): quotes $s \mp d$.
@@ -186,7 +190,7 @@ backtest/reproduce.sh build-backtest   # runs everything, then make_tables.py an
 ```
 
 `backtest_run` runs one market configuration for a list of strategies (`none`, `naive`,
-`as:<gamma>`, `sym:<gamma>`, `fixed:<ticks>`) on the same episode seeds and writes `run.txt`
+`as:<gamma>`, `sym:<gamma>`, `symtv:<gamma>`, `fixed:<ticks>`) on the same episode seeds and writes `run.txt`
 (command, seed, all parameters, wall time, load average), `summary.csv`, `diagnostics.csv`,
 `comparison.csv` and, with `--calibrate 1`, `calibration.csv` and `reach.csv`. `stress_test` does
 the same for every cell of `--nu-grid` $\times$ `--nbr-grid` (plus $\nu = 0$ once). Both print
@@ -526,7 +530,10 @@ optional flow-aware extension of the brief was not implemented).
   inventory limit for every inventory in $[-12, 12]$, A&S raw quotes equal the paper module's
   `reservation_price` and `optimal_spread` and the written-out formulas, zero inventory gives a
   quote centred on the mid, the skew sign, the vanishing skew at $t = T$, the symmetric spread
-  equals `paper::average_optimal_spread`, NaiveTouch joins the others' touch (not its own order).
+  equals `paper::average_optimal_spread`, NaiveTouch joins the others' touch (not its own order);
+  SymmetricTimeVarying gives exactly A&S's quotes (bit for bit) at zero inventory at random times
+  including past $T$, is centred on the mid, has A&S's spread at the same $t$ for any inventory,
+  ignores inventory and goes through the same rounding, clipping and limit rules.
 - `backtest_test_hawkes`: mean cluster size against $1/(1-n_{br})$ for $n_{br} \in
   \{0, 0.3, 0.5, 0.8\}$, mean window count against $\nu L/(1-n_{br})$, mean first-generation delay
   against $1/\beta$, buy fraction 1/2 and the immigrant count. Each is a $z$-test with the
@@ -549,7 +556,8 @@ optional flow-aware extension of the brief was not implemented).
   hand-built path; dispersion index on hand values, and uninformed market-order counts have
   dispersion near 1; fill rate decreases with quote distance (fixed offsets 0.5 to 3.5 ticks);
   resting orders far from the touch leave the reference mid path unchanged.
-- `backtest_test_experiment`: strategy-list parsing, comparison pairs, pooled summary statistics
+- `backtest_test_experiment`: strategy-list parsing, comparison pairs (adding symtv arms leaves
+  the position, and so the bootstrap stream, of every existing pair unchanged), pooled summary statistics
   on hand-built episodes, the $k$ fit recovers an exact exponential, the paired bootstrap is
   degenerate for identical inputs and covers a known shift with a narrow interval.
 
