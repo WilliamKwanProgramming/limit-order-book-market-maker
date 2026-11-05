@@ -4,8 +4,10 @@
 // observe(m, book) after each message has been applied.
 //
 //   counts per message type
-//   executed volume per side: type 4 by the resting order's side; type 5 (hidden) by direction,
-//     with directions other than +1/-1 counted apart
+//   executed volume per side: type 4 by the resting order's side; type 5 (hidden) by the direction
+//     as written in the file, with directions other than +1/-1 counted apart. A public course
+//     (see docs/design.md) calls the direction of hidden executions not observable, so the split
+//     is reported as written and labelled so, not interpreted as a buy/sell side.
 //   time-weighted means: the state after message k is weighted by t_{k+1} - t_k (zero for equal
 //     timestamps; intervals with negative length are ignored, the state after the last message has
 //     no weight). Spread = best ask - best bid in ticks, averaged over the time both sides are
@@ -29,8 +31,8 @@ struct StatsResult {
   std::array<std::uint64_t, 8> by_type{};  // index = type
   Qty executed_bid = 0;  // type 4 against resting bids
   Qty executed_ask = 0;  // type 4 against resting asks
-  Qty hidden_buy = 0;    // type 5, direction +1
-  Qty hidden_sell = 0;   // type 5, direction -1
+  Qty hidden_buy = 0;    // type 5, direction +1 as written (not necessarily a buy)
+  Qty hidden_sell = 0;   // type 5, direction -1 as written (not necessarily a sell)
   Qty hidden_other = 0;  // type 5, any other direction
   double two_sided_seconds = 0.0;
   double mean_spread_ticks = 0.0;   // 0 if never two-sided for a positive time

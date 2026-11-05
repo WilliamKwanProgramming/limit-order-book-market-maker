@@ -266,7 +266,8 @@ void print_summary(std::FILE* out, const SessionResult& r) {
   if (r.has_stats) {
     const StatsResult& s = r.stats;
     std::fprintf(out, "stats: executed (type 4) against bids %" PRId64 ", against asks %" PRId64
-                 "; hidden (type 5) buy %" PRId64 ", sell %" PRId64 ", other %" PRId64 "\n",
+                 "\n  hidden (type 5) by direction as written in the file (not observable per"
+                 " the public course notes): +1 %" PRId64 ", -1 %" PRId64 ", other %" PRId64 "\n",
                  s.executed_bid, s.executed_ask, s.hidden_buy, s.hidden_sell, s.hidden_other);
     std::fprintf(out, "  time-weighted mean spread %.4f ticks over %.3f s two-sided; mean best bid"
                  " size %.2f, best ask size %.2f\n", s.mean_spread_ticks, s.two_sided_seconds,

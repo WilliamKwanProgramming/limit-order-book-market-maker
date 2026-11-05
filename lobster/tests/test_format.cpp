@@ -245,6 +245,56 @@ LOB_TEST(message_types_5_6_7_are_lenient) {
   LOB_CHECK(msg("34200,7,-3,-4,0,2", m).ok());
 }
 
+// Rows in the form public sources show for real LOBSTER files (no file was copied; seven rows).
+LOB_TEST(message_rows_as_public_sources_show_them) {
+  Message m;
+  // Halt, quoting and resume rows: id 0, size 0, price -1 / 0 / 1, direction -1. Rows as in
+  // LOBSTER's stylized example quoted at
+  // https://www.r-bloggers.com/2019/12/converting-lobster-demo-r-code-into-python
+  // ("36023 | 7 | 0 | 0 | -1 | -1", the bars being the column separators).
+  const char* halts[] = {"36023,7,0,0,-1,-1", "36323,7,0,0,0,-1", "36723,7,0,0,1,-1"};
+  for (int k = 0; k < 3; ++k) {
+    LOB_CHECK(msg(halts[k], m).ok());
+    LOB_CHECK_EQ(m.type, 7);
+    LOB_CHECK_EQ(m.id, std::int64_t{0});
+    LOB_CHECK_EQ(m.size, Qty{0});
+    LOB_CHECK_EQ(m.price, Price{k - 1});
+    LOB_CHECK_EQ(m.direction, std::int64_t{-1});
+  }
+  LOB_CHECK_EQ(m.time, 36723 * kNanosPerSecond);
+  // Opening and closing auction crosses: type 6 with order id -1 and -2, as described at
+  // https://aef-course.ku.dk/exercises/high-frequency-econometrics.html ("type == 6 and ID == -1"
+  // / "ID == -2"). The page shows no raw row: time, size, price and direction are invented.
+  LOB_CHECK(msg("34200.000000000,6,-1,1500,5857500,-1", m).ok());
+  LOB_CHECK_EQ(m.id, std::int64_t{-1});
+  LOB_CHECK_EQ(m.size, Qty{1500});
+  LOB_CHECK(msg("57600.000000000,6,-2,2400,5861000,-1", m).ok());
+  LOB_CHECK_EQ(m.id, std::int64_t{-2});
+  // Hidden executions (type 5) with id 0 and direction -1 and +1, as rows of the AAPL 2012-06-21
+  // LOBSTER sample appear in the dataset viewer at
+  // https://huggingface.co/datasets/y7pan/lobster-data
+  // (the viewer may round the time; the other fields are as shown).
+  LOB_CHECK(msg("34200.275072,5,0,100,5857900,-1", m).ok());
+  LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond + 275072000);
+  LOB_CHECK_EQ(m.direction, std::int64_t{-1});
+  LOB_CHECK(msg("34200.417747,5,0,23,5857200,1", m).ok());
+  LOB_CHECK_EQ(m.size, Qty{23});
+  LOB_CHECK_EQ(m.direction, std::int64_t{1});
+  // Readers at the KU page above and at https://voigtstefan.github.io/post/lobster-1 read a seventh
+  // message column named `null` and drop it: an empty seventh field (one trailing comma) parses,
+  // a non-empty one is rejected.
+  LOB_CHECK(msg("36023,7,0,0,-1,-1,", m).ok());
+  LOB_CHECK(msg("34200.417747,5,0,23,5857200,1,", m).ok());
+  LOB_CHECK(msg("34200.000000000,6,-1,1500,5857500,-1,", m).ok());
+  LOB_CHECK(msg("36023,7,0,0,-1,-1,0", m).code == ParseCode::WrongFieldCount);
+  // Order-book row with one trailing comma (no source shows the raw bytes of a real row).
+  BookRow row;
+  row.resize(1);
+  LOB_CHECK(parse_book_row("5857900,200,5857200,100,", row).ok());
+  LOB_CHECK_EQ(row.asks[0].qty, Qty{200});
+  LOB_CHECK_EQ(row.bids[0].price, Price{5857200});
+}
+
 LOB_TEST(message_random_round_trip) {
   Rng rng(13);
   for (int i = 0; i < 50000; ++i) {
