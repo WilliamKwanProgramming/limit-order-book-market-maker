@@ -1,0 +1,31 @@
+gamma,statistic,paper,large_run,sd_of_1000_sim_estimate,blocks,z
+0.1,mean_profit (inventory),65,64.872,0.198144,100,0.645849
+0.1,sd_profit (inventory),6.6,6.54552,0.139965,100,0.389247
+0.1,mean_final_q (inventory),0.08,0.00699,0.0836856,100,0.872432
+0.1,sd_final_q (inventory),2.9,2.9282,0.0658562,100,-0.428132
+0.1,mean_profit (symmetric),68.4,68.2029,0.423933,100,0.464847
+0.1,sd_profit (symmetric),12.7,13.4174,0.452851,100,-1.58408
+0.1,mean_final_q (symmetric),0.26,0.01636,0.265996,100,0.915954
+0.1,sd_final_q (symmetric),8.4,8.41425,0.204827,100,-0.0695758
+0.1,sd_profit ratio (inventory / symmetric),0.519685,0.48784,0.0187526,100,1.69817
+0.1,sd_final_q ratio (inventory / symmetric),0.345238,0.348004,0.011064,100,-0.250015
+0.01,mean_profit (inventory),68.6,68.3866,0.273066,100,0.781399
+0.01,sd_profit (inventory),8.7,8.96727,0.238391,100,-1.12112
+0.01,mean_final_q (inventory),0.12,0.01406,0.164973,100,0.642166
+0.01,sd_final_q (inventory),5.1,5.21115,0.11729,100,-0.947672
+0.01,mean_profit (symmetric),68.8,68.632,0.420401,100,0.399509
+0.01,sd_profit (symmetric),12.8,13.631,0.427346,100,-1.94461
+0.01,mean_final_q (symmetric),0.09,0.0327,0.281878,100,0.20328
+0.01,sd_final_q (symmetric),8.7,8.71429,0.217414,100,-0.0657113
+0.01,sd_profit ratio (inventory / symmetric),0.679687,0.657857,0.0156127,100,1.39824
+0.01,sd_final_q ratio (inventory / symmetric),0.586207,0.598001,0.0113626,100,-1.03798
+1,mean_profit (inventory),31.4,31.4455,0.145378,100,-0.31326
+1,sd_profit (inventory),5,4.86015,0.107931,100,1.29574
+1,mean_final_q (inventory),0.02,0.00031,0.0542005,100,0.363281
+1,sd_final_q (inventory),1.7,1.64475,0.0345632,100,1.59839
+1,mean_profit (symmetric),44,43.7012,0.277263,100,1.0777
+1,sd_profit (symmetric),11,10.6947,0.279866,100,1.09097
+1,mean_final_q (symmetric),0,0.02176,0.159427,100,-0.136489
+1,sd_final_q (symmetric),5.1,5.17365,0.124224,100,-0.592852
+1,sd_profit ratio (inventory / symmetric),0.454545,0.454446,0.0145989,100,0.00682745
+1,sd_final_q ratio (inventory / symmetric),0.333333,0.31791,0.0110834,100,1.39156
