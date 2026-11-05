@@ -20,7 +20,7 @@ Continuous integration (GitHub Actions) builds with GCC 13 and Clang 18 in Relea
 
 ## Headline results
 
-All simulated or synthetic. Each value is copied from the file in the last column, and `scripts/check_readme_numbers.py` (run in CI) fails if a value here is not found in that file. Intervals are paired percentile-bootstrap 95% intervals over 2,000 independent 10-minute episodes. PnL is gross, in USD, for one 100-share lot per side.
+All simulated or synthetic. Each value is copied from the file in the last column, and `scripts/check_readme_numbers.py` (run in CI) fails if a value here is not found in that file. The backtest numbers come from 2,000 independent 10-minute episodes per strategy and cell. Values with "±" are a mean ± 1.96 standard errors (normal approximation); intervals in square brackets are paired percentile-bootstrap 95% intervals (1,000 replicates, the same episode indices for both strategies). PnL is gross, in USD, for one 100-share lot per side.
 
 | Result | Value | Source |
 |---|---|---|
@@ -43,13 +43,15 @@ All simulated or synthetic. Each value is copied from the file in the last colum
 
 *Figure 2. Simulated market with Hawkes bursts of informed flow, 2,000 episodes per cell (`results/backtest/stress.png`). Circles, squares and triangles are branching ratios 0.5, 0.75 and 0.9; dotted lines show the same strategy without informed flow. Avellaneda-Stoikov and symmetric quoting at c = 0.1.*
 
-**Reading.** With uninformed order flow, inventory-aware quoting does what the model says it should: it shrinks the variance of PnL and of inventory, and pays for it with a lower mean PnL. With enough informed flow every strategy loses money on average. In the cell listed above the variance reduction is gone (the ratio of PnL standard deviations is above 1), and Avellaneda-Stoikov loses more than the symmetric quoter and has the worst 10-second markout. The model assumes uninformed Poisson fills; the stress test breaks that assumption. The naive quoter, which joins the touch, has the highest mean PnL in the uninformed baseline and still loses money when the informed flow is strong. These are results about this simulator, not about real markets.
+**Reading.** With uninformed order flow, Avellaneda-Stoikov quoting does what the model says it should: it shrinks the variance of PnL and of inventory, and pays for it with a lower mean PnL (the comparison does not separate the inventory skew from the narrowing spread, see below). With enough informed flow every strategy loses money on average. In the cell listed above the variance reduction is gone (the ratio of PnL standard deviations is above 1), and Avellaneda-Stoikov loses more than the symmetric quoter and has the worst 10-second markout. The model assumes uninformed Poisson fills; the stress test breaks that assumption. The naive quoter, which joins the touch, has the highest mean PnL in the uninformed baseline and still loses money when the informed flow is strong. These are results about this simulator, not about real markets.
 
 ## What this does not show
 
 - **Nothing about real markets.** The background flow is a zero-intelligence model with constant rates; the volatility and the arrival-intensity decay used by the strategy are estimated from the simulator itself; the informed flow is a Hawkes burst model whose parameters were chosen to produce a stress, not estimated. A profitable cell in a table is not evidence that a strategy makes money.
 - **Nothing about real LOBSTER data.** The replayer is tested against files from the synthetic generator in `lobster/tools/`, whose book is an independent Python implementation; both were written for this repository, so agreement shows consistency between two implementations, not correctness against the vendor's data. The format notes in `docs/design.md` are taken from LOBSTER's public documentation and have not been checked against a real file. Real files may contain cases that neither side of the test has met.
 - **Simplified execution.** One asset, one lot per side, no fees or rebates, a fixed latency, no venue queueing, mark-to-market at the mid. The Avellaneda-Stoikov parameters are estimated in-sample on the same simulator.
+- **Two effects in one comparison.** Avellaneda-Stoikov skews its quotes with inventory and also narrows its spread as the horizon approaches; the symmetric benchmark does neither. The headline ratios above credit both together. A symmetric arm with the time-varying spread, and a sensitivity run over the estimated volatility and decay rate, have not been run.
+- **Not an adverse-selection-free market.** In the uninformed baseline every strategy's fills are followed by a move of the mid against it (the 10-second markout is below the spread captured, Table 3 of `results/backtest/tables.md`); the half-spread covers it, so average markouts stay positive.
 - **Timing numbers are indicative.** They come from a shared 2-core cloud VM; the load average at the start and end of each benchmark is recorded in the output file.
 
 ## Build, test, reproduce
@@ -60,7 +62,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-The Python module is built when Python development headers and pybind11 3.0 or later are found (`pip install pybind11 numpy pytest`); otherwise it is skipped with a message. `-DLOB_MODULES="core;paper;lobster"` selects modules, `-DLOB_SANITIZE=ON` adds the sanitizers.
+Requirements: CMake 3.16 or later, Ninja (or drop `-G Ninja`), and GCC 13 or Clang 18. The Python module is built when Python development headers and pybind11 3.0 or later are found (`pip install pybind11 numpy pytest`); otherwise it is skipped with a message, and the Python and end-to-end LOBSTER tests are reported as skipped (exit status 77) when Python, numpy or pytest is missing, so `ctest` can pass without having run them. `-DLOB_MODULES="core;paper;lobster"` selects modules, `-DLOB_SANITIZE=ON` adds the sanitizers. The module READMEs build one module (and what it depends on) into `build-<module>` so that each can be worked on separately.
 
 Every result is regenerated from a committed tree by a script that writes the commands, seeds, commit and machine load next to the output:
 
