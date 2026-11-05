@@ -254,13 +254,13 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
 | 10 | lenient | 500000 | 72 | 713 | 0.1426% | 713 | - |
 | 10 | lenient + bootstrap | 500000 | 9 | 453 | 0.0906% | 713 | 20 / 63 / 9 / 0 |
 
-**Table 5.** Throughput on a 2,000,000-message synthetic file, N = 10, 7 passes per stage (median of the passes; best and worst also shown). Build: GNU 13.3.0, Release, -O3 -DNDEBUG. Load average 1.26 before and 1.19 after (shared 2-core VM).
+**Table 5.** Throughput on a 2,000,000-message synthetic file, N = 10, 7 passes per stage (median of the passes; best and worst also shown). Build: GNU 13.3.0, Release, -O3 -DNDEBUG. Load average 1.00 before and 1.08 after (shared 2-core VM).
 
 | Stage | Messages | Best msgs/s | Median msgs/s | Worst msgs/s |
 |---|---|---|---|---|
-| parse | 2000000 | 7.46e+06 | 7.38e+06 | 5.61e+06 |
-| parse+replay | 2000000 | 4.95e+06 | 4.69e+06 | 3.94e+06 |
-| parse+replay+validate | 2000000 | 9.34e+05 | 8.97e+05 | 8.7e+05 |
+| parse | 2000000 | 7.26e+06 | 6.61e+06 | 5.25e+06 |
+| parse+replay | 2000000 | 4.32e+06 | 3.72e+06 | 3.1e+06 |
+| parse+replay+validate | 2000000 | 8.74e+05 | 8.05e+05 | 6.88e+05 |
 
 <!-- tables:end -->
 
@@ -281,12 +281,15 @@ Produced by `lobster/reproduce.sh` (commands, seeds, commit and machine load in
   smaller $N$ is, the less the bootstrap can see: at $N = 1$ it resolves 6 references and leaves
   66 unexplained. On real data, where orders may rest much longer, both the damage and what the
   bootstrap can repair are unknown.
-- Table 5: on this shared VM, with the load average just under 1.3, the full pass (parse both
-  files, replay, compare 10 levels per side) ran at about 0.9 million messages per second, and
-  parse plus replay of the message file alone at about 4.7 million. The order-book file is 5.8
-  times larger than the message file (465 MB against 81 MB, sizes in `MANIFEST.txt`); how the
-  difference splits between parsing it and comparing levels was not measured. The core benchmark
-  (`core/README.md`) is not comparable: it replays from memory without parsing.
+- Table 5: on this shared VM, with the load average near 1.0, the full pass (parse both files,
+  replay, compare 10 levels per side) ran at a median of 0.81 million messages per second (best
+  0.87, worst 0.69), and parse plus replay of the message file alone at a median of 3.7 million
+  (best 4.3, worst 3.1). The spread between passes is large because the VM is shared, so read
+  these as roughly one million and four million messages per second, not as precise figures. The
+  order-book file is 5.8 times larger than the message file (465 MB against 81 MB, sizes in
+  `MANIFEST.txt`); how the difference splits between parsing it and comparing levels was not
+  measured. The core benchmark (`core/README.md`) is not comparable: it replays from memory
+  without parsing.
 
 ## Build, test, reproduce
 
