@@ -53,7 +53,17 @@ print(','.join(f'as:{x:.6g},sym:{x:.6g}' for x in g) + ','
   --nu-grid 0,0.01,0.03,0.1 --nbr-grid 0.5,0.75,0.9 --episodes $N --seed 303 --bootstrap $B \
   --as-sigma "$sigma" --as-k "$k" --out "$out/stress"
 
-# 5. Sensitivity to the estimated k and sigma: the as, symtv and sym arms get k x 0.5, k x 2,
+# 5. Monte Carlo error of the bootstrap endpoints: the
+#    headline pairs recomputed with 10,000 replicates on the same episodes (same seeds, only the two
+#    arms concerned): A&S against Symmetric at c = 1 in the baseline and at c = 0.1 in the stress
+#    cell (0.1, 0.9).
+"$bin/backtest_run" --strategies "as:$ghi,sym:$ghi" --episodes $N --seed 202 --bootstrap 10000 \
+  --as-sigma "$sigma" --as-k "$k" --out "$out/mc_check/baseline_c1"
+"$bin/backtest_run" --strategies "as:$gmid,sym:$gmid" --news-rate 0.1 --branching 0.9 \
+  --episodes $N --seed 303 --bootstrap 10000 --as-sigma "$sigma" --as-k "$k" \
+  --out "$out/mc_check/stress_0.1_0.9"
+
+# 6. Sensitivity to the estimated k and sigma: the as, symtv and sym arms get k x 0.5, k x 2,
 #    sigma x 0.8 or sigma x 1.25 (one at a time; gamma unchanged), and the unperturbed values, on
 #    the first NS episodes of the baseline (seed 202; c = 0.1 and c = 1) and of the stress cell
 #    (0.1, 0.9) (seed 303; c = 0.1), so every setting sees the same episodes.
@@ -82,7 +92,7 @@ done
   echo "load average (1 min) at start: $load_start, at end: $(cut -d' ' -f1 /proc/loadavg)"
   echo "episodes per strategy: $N (calibration 1000, sensitivity $NS); bootstrap replicates: $B"
   echo "A&S estimates: sigma=$sigma ticks/sqrt(s), k=$k 1/tick"
-  for d in calibration baseline stress "${sens[@]}"; do echo "--- $d"; cat "$out/$d/run.txt"; done
+  for d in calibration baseline stress mc_check/baseline_c1 mc_check/stress_0.1_0.9 "${sens[@]}"; do echo "--- $d"; cat "$out/$d/run.txt"; done
 } > "$out/MANIFEST.txt"
 
 python3 backtest/make_tables.py
