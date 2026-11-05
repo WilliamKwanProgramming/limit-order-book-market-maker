@@ -178,7 +178,10 @@ Per episode, for our strategy:
 - **Paired comparisons** (A vs B on the same episodes): mean PnL difference, SD PnL ratio, SD
   $q_T$ ratio, mean $|q|$ difference, Sharpe difference, fill-rate ratio, markout differences.
   Intervals: paired percentile bootstrap (1000 replicates; each draws episode indices with
-  replacement and applies the same indices to A and B; 2.5% and 97.5% type-7 quantiles).
+  replacement and applies the same indices to A and B; 2.5% and 97.5% type-7 quantiles). A
+  replicate whose statistic is not finite is dropped and counted (`replicates_kept`). The
+  "± 1.96 SE (normal approximation)" columns are a different kind of interval: mean
+  $\pm 1.96\,\mathrm{SD}/\sqrt{n}$ for one strategy.
 
 ## How to run
 
@@ -204,7 +207,9 @@ value behind each interval. Output is deterministic for a given seed and build; 
 last bit across C libraries, so results on another platform are only statistically identical.
 
 `backtest/reproduce.sh` runs the calibration (seed 101), derives the $\gamma$ grid from
-$\hat\sigma$, runs the uninformed baseline (seed 202) and the stress grid (seed 303), records
+$\hat\sigma$, runs the uninformed baseline (seed 202) and the stress grid (seed 303), the
+10,000-replicate interval check and the sensitivity runs (same seeds, `results/backtest/mc_check/`
+and `results/backtest/sensitivity/`), records
 commands, seeds, git commit and machine load in `results/backtest/MANIFEST.txt`, then calls
 `make_tables.py` (tables below and `results/backtest/tables.md`) and `plot.py` (figures).
 
@@ -298,7 +303,12 @@ multiplicity; the reading quotes only the rows named above.
 2000, the sensitivity runs 5 settings x (6 x 1000 + 3 x 1000) arm-episodes, and the Monte Carlo
 check 2 x 2 x 2000: all together well under the 40 minutes of one core allowed.
 
-**Deviations from this plan:** none so far.
+**Deviations from this plan:** none in the analyses. Implementation details the plan did not fix:
+`stress_test` no longer accepts `--calibrate` (it was accepted and ignored before); `--k-scale` and
+`--sigma-scale` are accepted by both executables. The pre-specified skew share is above 1 in the
+stress cell (0.1, 0.9), where the skew raises the SD and the spread term lowers it; it is reported
+as computed. The multiplicity count above is wrong for the sensitivity runs: they add 45 pairs
+(3 per cell and $c$, 5 settings, 3 cell-$c$ combinations), not 30.
 
 ## Results
 
@@ -469,26 +479,65 @@ inventory, more so as $\gamma$ grows, at the cost of a lower mean PnL; from $c =
 mean/SD ratio is higher than the benchmark's (Tables 3 and 4). This comparison changes two things
 at once: A&S skews its quotes with inventory and also lets its spread narrow as $T$ approaches (the
 term $\gamma\sigma^2(T-t)$), while the symmetric benchmark quotes a constant spread (the time
-average of A&S's) with no skew. A symmetric arm with A&S's time-varying spread is not run here, so the reductions are not attributed to the inventory
-skew alone. Two effects that the paper's model does not have:
+average of A&S's) with no skew. The SymTV arm separates the two (next paragraph). Two effects that
+the paper's model does not have:
 
 - *Tick rounding.* The symmetric benchmark's half-spread lies between half a tick and one tick for
   most of the grid, so after flooring the bid and ceiling the ask it quotes the same prices for
   several $\gamma$ values (the "distinct results" bullet above). A&S changes with $\gamma$ through
-  both the inventory skew and its spread term, which move its quotes across tick boundaries.
+  both the inventory skew and its spread term, which move its quotes across tick boundaries. For
+  the same reason SymTV quotes exactly like the symmetric benchmark at $c = 0.01$ and $0.03$ (the
+  ratios of 1.000 in Table 7): the time variation of the spread never crosses a tick there.
 - *Queue position.* The naive touch-joiner has the highest mean PnL and three times as many fills
   as the others, with roughly the benchmark's PnL SD. Quoting at the touch earns less per fill
   but fills far more often. Fills are adversely selected for every strategy (the 10 s markout is
   below the spread captured at the fill, by 0.29 ticks for NaiveTouch and 0.64 for the symmetric
-  quoter at c = 0.1, Table 3), but less so at the touch, and the half-spread more than covers it
+  quoter at c = 0.1; column "adverse selection per fill" of Table 3), but less so at the touch, and the half-spread more than covers it
   (all uninformed markouts are positive). A&S at the larger $\gamma$ values has a higher mean/SD than
   NaiveTouch, but a lower mean.
 
-The $k$ fit is the weakest input. Market-order reach decays roughly exponentially beyond the
-touch, but the fitted line misses the rate at the touch by about a factor of two (Table 2a; last
-bullet above). The A&S spread term $\tfrac{2}{\gamma}\ln(1 + \gamma/k)$ depends on this $k$;
-with the estimated value it is a bit under two ticks, which tick rounding then turns into quotes
-one tick behind the touch most of the time.
+**Skew or spread term?** (Table 7, the pre-specified decomposition.) Almost all of the reduction
+in the SD of PnL comes from the inventory skew. In the uninformed baseline the ratio A&S/SymTV
+(skew alone) is 0.495 [0.472, 0.519] at $c = 0.1$ and 0.259 [0.245, 0.272] at $c = 1$, while
+SymTV/Symmetric (the time-varying spread alone) is 0.968 [0.950, 0.987] and 0.837 [0.807, 0.867];
+their products are the A&S/Symmetric ratios 0.480 and 0.217. On the log scale the skew's share is
+0.96 at $c = 0.1$ and 0.88 at $c = 1$ (point estimates); at $c = 0.01$ and $0.03$ it is all of it,
+because SymTV and Symmetric quote identically there. The spread term matters only at the largest
+$\gamma$, where $\gamma\sigma^2(T-t)$ is a few ticks early in the episode: it lowers the PnL SD by
+about 16% at $c = 1$, but leaves the SD of terminal inventory nearly unchanged (0.969 [0.951,
+0.987]); the inventory reduction is the skew's (0.406 [0.392, 0.420]). The spread term also
+accounts for 5.3 of the 14.9 USD lower mean PnL at $c = 1$ (wider quotes early, fewer fills). The
+headline A&S/Symmetric ratios therefore mostly, but not entirely, measure inventory awareness.
+
+**Sensitivity to $k$ and $\sigma$** (Tables 8 and 9). Sampling error in the estimates is small:
+over 10 blocks of 100 calibration episodes the standard error of the 1000-episode estimate is
+0.4% of $\hat\sigma$ and 0.5% of $\hat k$, so the perturbations used (×0.8 and ×1.25 for
+$\sigma$, ×0.5 and ×2 for $k$) are 49 to 203 standard errors. They stand for model misfit, not
+sampling noise: the exponential fitted to market-order reach misses the rate at the touch by
+about a factor of two (Table 2a; last bullet above; partly by construction, since every market
+order reaches half a tick), and $k$ fitted to reach is not the fill rate of our own queued orders
+(Table 2b). The results are sensitive to these inputs in size but not in direction. In the
+uninformed market the A&S/Symmetric SD-of-PnL ratio at $c = 0.1$ ranges from 0.277 [0.256, 0.302]
+($k \times 2$) to 0.696 [0.665, 0.726] ($k \times 0.5$) around 0.491 [0.459, 0.522] unperturbed
+(1000 episodes), and at $c = 1$ from 0.168 [0.154, 0.183] to 0.307 [0.279, 0.343] around 0.209
+[0.194, 0.224]; every setting keeps a large reduction. The benchmark moves with the inputs too (its
+spread is A&S's average), so these ratios compare two strategies that both change. $k$ matters
+more than $\sigma$, because $k$ sets the spread term $\tfrac{2}{\gamma}\ln(1 + \gamma/k)$, about
+$2/k$ ticks, which decides whether the rounded quotes sit at or one tick behind the touch. With
+$k \times 2$ at $c = 0.1$, A&S quotes closer, earns a higher mean (42.9 ± 1.3 USD against 30.7 ±
+2.3) and no longer pays for its lower variance in mean PnL relative to the benchmark (+1.8 [-2.6,
++6.8] USD). In the strong stress cell no perturbation restores a variance reduction: the ratio
+stays between 1.013 [0.994, 1.036] and 1.160 [1.128, 1.193], and A&S has the lower mean PnL in
+every setting. With these $\sigma$ and $k$ errors the answer to "does A&S reduce variance" does
+not change in either regime; the size of the reduction does, by up to a factor of 2.5.
+
+**Intervals.** The "± 1.96 SE (normal approximation)" columns are analytic intervals for one
+strategy's mean; every bracketed interval is a paired percentile bootstrap with 1000 replicates.
+No bootstrap replicate was dropped as non-finite in any comparison file (bullet above). Recomputed
+with 10,000 replicates, the three headline intervals move by at most 3.5% of their width
+(Table 10), below the pre-specified 5% threshold, so 1000 replicates were kept. The intervals are
+per comparison, not corrected for the number of comparisons (122 pairs and 976 intervals across
+the comparison files).
 
 **Informed flow (stress grid).** What the grid shows:
 
@@ -515,21 +564,27 @@ one tick behind the touch most of the time.
   roughly the same amount everywhere), but its advantage in SD of terminal inventory shrinks as
   bursts grow, and in the strongest cells its PnL SD is *higher* than the benchmark's and its mean
   PnL is lower by a widening margin (Table 6). The A&S PnL also has a more negative 10 s
-  markout there. This run does not isolate the mechanism; a plausible one is that after a burst
-  fills one side, the skewed quotes keep the inventory-reducing side close to a price that is
-  still moving away. The A&S model has no term for autocorrelated order flow, so nothing in it
+  markout there. Table 7 attributes this to the skew: at (0.1, 0.9), A&S against SymTV has a PnL
+  SD ratio of 1.060 [1.044, 1.076] and a mean PnL difference of -146.8 [-156.9, -136.9] USD, while
+  the spread term alone slightly lowers the SD (0.988 [0.982, 0.993]) and raises the mean
+  (+21.0 [+18.2, +24.1] USD); the "skew share" is above 1 (1.27) because the two effects go in
+  opposite directions. The run does not show why the skew hurts; a plausible mechanism is that
+  after a burst fills one side, the skewed quotes keep the inventory-reducing side close to a
+  price that is still moving away. The A&S model has no term for autocorrelated order flow, so nothing in it
   says it should help here.
 
 What the grid does not show: it says nothing about real markets (the flow is stylized and the
 "informed" orders carry no information beyond their own impact); it uses one $\gamma$ for the
 stress test; A&S keeps the $\sigma$ and $k$ estimated without informed flow, although Table 1
 shows that bursts raise volatility, mostly at longer sampling intervals (trending), so an A&S
-re-estimated per cell would quote differently; and no strategy here reacts to order flow (the
+re-estimated per cell would quote differently (Table 9 shows that $\sigma \times 1.25$ and
+$k \times 0.5$ or $\times 2$ do not restore a variance reduction in the strongest cell, but an
+estimate made on that cell's own flow was not run); and no strategy here reacts to order flow (the
 optional flow-aware extension of the brief was not implemented).
 
 ## Tests
 
-`ctest -R backtest` runs four test executables (`lob/check.hpp`) and two command-line smoke tests:
+`ctest -R backtest` runs four test executables (`lob/check.hpp`) and seven command-line tests:
 
 - `backtest_test_strategy`: tick rounding (including floating-point values a hair off a tick),
   post-only clipping (20,000 random books and raw quotes against an independent formula),
@@ -564,8 +619,12 @@ optional flow-aware extension of the brief was not implemented).
   resting orders far from the touch leave the reference mid path unchanged.
 - `backtest_test_experiment`: strategy-list parsing, comparison pairs (adding symtv arms leaves
   the position, and so the bootstrap stream, of every existing pair unchanged), pooled summary statistics
-  on hand-built episodes, the $k$ fit recovers an exact exponential, the paired bootstrap is
-  degenerate for identical inputs and covers a known shift with a narrow interval.
+  on hand-built episodes, the $k$ fit recovers an exact exponential (also on an explicit set of
+  points, as used for the calibration blocks), the blocks partition the episodes and reproduce
+  the full estimate on identical blocks, the paired bootstrap is degenerate for identical inputs,
+  covers a known shift with a narrow interval and counts the replicates it drops.
+- Command-line tests: `--k-scale 2 --sigma-scale 1.25` gives byte-identical output to passing the
+  scaled $k$ and $\sigma$ directly, and different output from the unscaled run.
 
 The suite takes under 1 s in Release and about 35 s in the GCC ASan+UBSan Debug build (three
 runs each at load average about 3 on the shared 2-core VM; the simulation-heavy test executables
@@ -609,9 +668,13 @@ so common random numbers still hold.
   all strategies of an episode (copied), but our strategy starts flat each episode.
 - The **$\gamma$ grid is defined through $\hat\sigma$** (skew per lot $c$), so it would change if
   the calibration changed. The stress test uses only the middle value.
-- **Run time**: the whole of `reproduce.sh` takes about ten minutes on one core of the shared VM
-  (wall times and load averages per run are in `results/backtest/MANIFEST.txt`); this is not a
-  performance benchmark.
+- **Run time**: the whole of `reproduce.sh` takes about 20 minutes of one core on an idle shared
+  VM, longer under load (wall times and load averages per run are in
+  `results/backtest/MANIFEST.txt`); this is not a performance benchmark.
+- **Sensitivity is one input at a time**, at four fixed perturbations, 1000 episodes each, in three
+  cells; joint errors in $k$ and $\sigma$, other $\gamma$ values and the other stress cells are not
+  run. The decomposition uses one way of splitting (skew added to SymTV); the share is a point
+  estimate.
 
 ## Deviations from the brief
 
