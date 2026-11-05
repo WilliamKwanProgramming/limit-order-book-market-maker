@@ -43,8 +43,8 @@ int SessionResult::exit_code() const noexcept {
 SessionResult run_session(ByteSource& messages, ByteSource* book, const SessionOptions& opt) {
   SessionResult r;
   r.options = opt;
-  const bool read_book =
-      book != nullptr && (opt.stage == Stage::Validate || (opt.stage == Stage::Replay && opt.bootstrap));
+  const bool read_book = book != nullptr && (opt.stage == Stage::Validate ||
+                                             (opt.stage == Stage::Replay && opt.bootstrap));
   r.has_book = book != nullptr;
   r.has_stats = opt.stats && opt.stage != Stage::Parse;
 
@@ -146,7 +146,7 @@ SessionResult run_session(ByteSource& messages, ByteSource* book, const SessionO
   return r;
 }
 
-// ---- Output --------------------------------------------------------------------------------------
+// ---- Output -------------------------------------------------------------------------------------
 
 namespace {
 
@@ -184,7 +184,8 @@ void print_summary(std::FILE* out, const SessionResult& r) {
   std::fprintf(out, "message rows: %" PRIu64 " (malformed %" PRIu64 ", blank lines skipped %" PRIu64
                ")\n", r.message_records, r.message_parse_errors, r.message_blank_lines);
   if (r.first_message_error.set) {
-    std::fprintf(out, "  first malformed message: line %" PRIu64 ", field %" PRId32 ": %s: \"%s\"\n",
+    std::fprintf(out,
+                 "  first malformed message: line %" PRIu64 ", field %" PRId32 ": %s: \"%s\"\n",
                  r.first_message_error.line, r.first_message_error.error.field,
                  to_string(r.first_message_error.error.code), r.first_message_error.text.c_str());
   }
@@ -221,10 +222,11 @@ void print_summary(std::FILE* out, const SessionResult& r) {
     std::fprintf(out, "bootstrap (HEURISTIC, untested on real LOBSTER data): seeded=%s"
                  " first_message_undone=%s\n", g.seeded ? "yes" : "no",
                  g.first_message_undone ? "yes" : "no");
-    std::fprintf(out, "  ghosts created %" PRIu64 " (size %" PRId64 "), references resolved %" PRIu64
-                 " (size %" PRId64 "), ghosts emptied %" PRIu64 ", unexplained references %" PRIu64
-                 ", shortfalls %" PRIu64 "\n", g.created, g.created_qty, g.references_resolved,
-                 g.consumed_qty, g.emptied, g.unexplained, g.shortfall);
+    std::fprintf(out, "  ghosts created %" PRIu64 " (size %" PRId64 "), references resolved %"
+                 PRIu64 " (size %" PRId64 "), ghosts emptied %" PRIu64
+                 ", unexplained references %" PRIu64 ", shortfalls %" PRIu64 "\n",
+                 g.created, g.created_qty, g.references_resolved, g.consumed_qty, g.emptied,
+                 g.unexplained, g.shortfall);
   }
   if (r.validated) {
     const ValidationReport& v = r.validation;
@@ -239,7 +241,8 @@ void print_summary(std::FILE* out, const SessionResult& r) {
         std::fprintf(out, " L%zu=%" PRIu64 "/%" PRIu64, i + 1, v.ask_level_mismatches[i],
                      v.bid_level_mismatches[i]);
       }
-      std::fprintf(out, "\n");
+      std::fprintf(out, "\n  last mismatching row: message %" PRIu64 "\n",
+                   v.last_mismatch_index);
     }
     if (v.first.set) {
       std::fprintf(out, "  first mismatch: message %" PRIu64 " (line %" PRIu64 "): ", v.first.index,
@@ -339,8 +342,9 @@ void print_key_values(std::FILE* out, const SessionResult& r) {
                    i + 1, v.ask_level_mismatches[i], i + 1, v.bid_level_mismatches[i]);
     }
     if (v.first.set) {
-      std::fprintf(out, "first_mismatch_index=%" PRIu64 "\nfirst_mismatch_line=%" PRIu64 "\n",
-                   v.first.index, v.first.line);
+      std::fprintf(out, "first_mismatch_index=%" PRIu64 "\nfirst_mismatch_line=%" PRIu64
+                   "\nlast_mismatch_index=%" PRIu64 "\n", v.first.index, v.first.line,
+                   v.last_mismatch_index);
     }
     if (v.unchanged_violations > 0) {
       std::fprintf(out, "first_unchanged_violation_index=%" PRIu64 "\n",

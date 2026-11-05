@@ -81,8 +81,8 @@ bool LineReader::next(std::string_view& line) {
   ++line_no_;
   if (at_start_) {
     at_start_ = false;
-    if (line.size() >= 3 && static_cast<unsigned char>(line[0]) == 0xEF &&
-        static_cast<unsigned char>(line[1]) == 0xBB && static_cast<unsigned char>(line[2]) == 0xBF) {
+    const auto byte = [&](std::size_t i) { return static_cast<unsigned char>(line[i]); };
+    if (line.size() >= 3 && byte(0) == 0xEF && byte(1) == 0xBB && byte(2) == 0xBF) {
       line.remove_prefix(3);
     }
   }

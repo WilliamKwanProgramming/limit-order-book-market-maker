@@ -1,0 +1,8 @@
+command=/home/claude/limit-order-book-market-maker/build-lobster/lobster/lobster_replay --messages /tmp/claude-0/-home-claude/2edde388-b5a2-5422-89c6-d04f4a2ec766/scratchpad/lobster/repro/bench_message_10.csv --book /tmp/claude-0/-home-claude/2edde388-b5a2-5422-89c6-d04f4a2ec766/scratchpad/lobster/repro/bench_orderbook_10.csv --bench --bench-passes 7 --out results/lobster/bench --quiet
+build=GNU 13.3.0, Release, -O3 -DNDEBUG
+bench_passes=7
+load_average_before=1.26
+load_average_after=1.19
+parse: messages=2000000 msgs_per_s best=7.455e+06 median=7.383e+06 worst=5.608e+06
+parse+replay: messages=2000000 msgs_per_s best=4.954e+06 median=4.687e+06 worst=3.943e+06
+parse+replay+validate: messages=2000000 msgs_per_s best=9.344e+05 median=8.97e+05 worst=8.698e+05

@@ -64,8 +64,9 @@ def compare_full(book, ref, uncrossed):
 class OpGen:
     """Random operations over a small id space so that ids are reused, duplicated and unknown."""
 
-    def __init__(self, seed):
+    def __init__(self, seed, cross_p):
         self.rng = random.Random(seed)
+        self.cross_p = cross_p
         self.next_id = 1
         self.used: list[int] = []
         self.ts = 0
@@ -92,12 +93,12 @@ class OpGen:
         return self.rng.choice(live)
 
     def price(self, side):
-        """Mostly passive around a fixed mid of 1000; 15% cross it (and so trade, or in replay
-        mode cross the book)."""
+        """Mostly passive around a fixed mid of 1000; a fraction cross_p is at or through the
+        mid (so it trades, or in replay mode may lock or cross the book)."""
         r = self.rng.random()
         if r < 0.005:
             return self.rng.choice([0, -1, -100])
-        if r < 0.15:
+        if r < 0.005 + self.cross_p:
             return 1000 + side * self.rng.randint(0, 10)
         return 1000 - side * self.rng.randint(1, 20)
 
@@ -135,7 +136,7 @@ def apply(book, ref, op, args):
 
 
 def run(seed, mode):
-    g = OpGen(seed)
+    g = OpGen(seed, cross_p=0.15 if mode == "matching" else 0.03)
     rng = g.rng
     book, ref = OrderBook(), RefBook()
     live_cache: list[int] = []

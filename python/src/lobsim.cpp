@@ -730,4 +730,20 @@ PYBIND11_MODULE(_lobsim, m) {
          "deviations, divisor n - 1; 0 when n < 2). Keys match results/paper/*/summary.csv.");
 
   mp.attr("STRATEGIES") = py::make_tuple("inventory", "symmetric", "symmetric_tv");
+
+  // What was compiled, for benchmark records.
+  m.attr("__build_info__") = py::dict(
+#if defined(__clang__)
+      "compiler"_a = std::string("Clang ") + __clang_version__,
+#elif defined(__GNUC__)
+      "compiler"_a = std::string("GCC ") + __VERSION__,
+#elif defined(_MSC_VER)
+      "compiler"_a = "MSVC " + std::to_string(_MSC_VER),
+#else
+      "compiler"_a = "unknown",
+#endif
+      "build_type"_a = LOBSIM_BUILD_TYPE, "cxx_flags"_a = LOBSIM_CXX_FLAGS,
+      "pybind11"_a = std::to_string(PYBIND11_VERSION_MAJOR) + "." +
+                     std::to_string(PYBIND11_VERSION_MINOR) + "." +
+                     std::to_string(PYBIND11_VERSION_PATCH));
 }

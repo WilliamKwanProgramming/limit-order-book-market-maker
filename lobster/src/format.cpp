@@ -28,8 +28,9 @@ std::size_t split(std::string_view line, std::string_view* fields, std::size_t m
   std::size_t start = 0;
   for (;;) {
     const std::size_t comma = line.find(',', start);
-    const std::string_view f =
-        line.substr(start, comma == std::string_view::npos ? std::string_view::npos : comma - start);
+    const std::size_t len =
+        comma == std::string_view::npos ? std::string_view::npos : comma - start;
+    const std::string_view f = line.substr(start, len);
     if (n == max_fields) return max_fields + 1;
     fields[n++] = f;
     if (comma == std::string_view::npos) break;
@@ -41,7 +42,8 @@ std::size_t split(std::string_view line, std::string_view* fields, std::size_t m
 
 constexpr std::int64_t kNanos = 1'000'000'000;
 // Largest whole-second count whose nanosecond value (plus any fraction) fits in int64.
-constexpr std::int64_t kMaxSeconds = (std::numeric_limits<std::int64_t>::max() - (kNanos - 1)) / kNanos;
+constexpr std::int64_t kMaxSeconds =
+    (std::numeric_limits<std::int64_t>::max() - (kNanos - 1)) / kNanos;
 
 ParseError at(ParseCode c, std::int32_t field) noexcept { return ParseError{c, field}; }
 

@@ -44,7 +44,8 @@ def make_stream(n_orders: int, seed: int, *, noise: float = 0.0,
     side = np.where(rng.random(n) < 0.5, 1, -1).astype(np.int8)
     size = (rng.integers(1, 10, n) * 100).astype(np.int64)
 
-    # Mid: random walk in cents (a move in 2% of steps), one step per 50 time units, evaluated at each add time.
+    # Mid: random walk in cents (a move in 2% of steps), one step per 50 time units, evaluated
+    # at each add time.
     n_buckets = int(t_add[-1] // 50) + 2 if n else 1
     walk = np.cumsum(rng.choice(np.array([-100, 0, 100]), n_buckets, p=[0.01, 0.98, 0.01]))
     mid = 5_000_000 + walk[(t_add // 50).astype(np.int64)] if n else np.zeros(0, np.int64)

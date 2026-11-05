@@ -93,8 +93,8 @@ struct NamedInterval {
 // sharpe_diff, fill_rate_ratio, markout_1s_diff, markout_10s_diff. Paired percentile bootstrap:
 // each replicate draws episode indices with replacement and uses the same indices for a and b.
 std::vector<NamedInterval> paired_bootstrap(const std::vector<EpisodeResult>& a,
-                                            const std::vector<EpisodeResult>& b, int replicates,
-                                            Rng& rng, double level = 0.95);
+                                            const std::vector<EpisodeResult>& b, double horizon,
+                                            int replicates, Rng& rng, double level = 0.95);
 
 // CSV helpers shared by backtest_run and stress_test. `prefix` columns come first.
 void write_summary_header(std::FILE* f, const char* prefix);
@@ -103,8 +103,8 @@ void write_summary_row(std::FILE* f, const std::string& prefix, const StrategySp
 void write_diagnostics_header(std::FILE* f, const char* prefix);
 void write_diagnostics_row(std::FILE* f, const std::string& prefix, const StrategySpec& spec,
                            const MarketDiagnostics& d);
-// Pairs compared: (as:g, sym:g), (as:g, naive), (sym:g, naive) for every g present, plus
-// (as:g, none)... only pairs whose members are both present.
+// Pairs compared: (as:g, sym:g), (as:g, naive) and (sym:g, naive) for every g, when both
+// members are present. Returned as indices into `specs`.
 std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
     const std::vector<StrategySpec>& specs);
 

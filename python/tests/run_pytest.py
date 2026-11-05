@@ -1,7 +1,7 @@
 """CTest entry point: run pytest on python/tests. Arguments are passed to pytest.
 
-Exits with 77, which CTest reports as "skipped", if pytest is not installed or the extension has
-not been built. Any other import error (for example a missing symbol) is a failure."""
+Exits with 77, which CTest reports as "skipped", if pytest or numpy is not installed or the
+extension has not been built. Any other import error (for example a missing symbol) is a failure."""
 
 import sys
 
@@ -11,6 +11,12 @@ try:
     import pytest
 except ImportError:
     print("python_pytest: skipped, pytest is not installed")
+    sys.exit(SKIP)
+
+try:
+    import numpy  # noqa: F401
+except ImportError:
+    print("python_pytest: skipped, numpy is not installed")
     sys.exit(SKIP)
 
 try:

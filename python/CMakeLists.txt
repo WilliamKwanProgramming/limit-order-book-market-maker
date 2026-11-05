@@ -57,6 +57,12 @@ set_target_properties(lobsim PROPERTIES
 # pybind11's own and Python's headers are imported targets, so they are included as system
 # headers and the repository's warning flags apply only to our code.
 target_link_libraries(lobsim PRIVATE lob::core lob::paper lob::options)
+# Recorded in lobsim._lobsim.__build_info__ (used by bench/bench_bindings.py).
+string(TOUPPER "${CMAKE_BUILD_TYPE}" lobsim_build_type_upper)
+string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${lobsim_build_type_upper}}" lobsim_cxx_flags)
+target_compile_definitions(lobsim PRIVATE
+  LOBSIM_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  LOBSIM_CXX_FLAGS="${lobsim_cxx_flags}")
 
 # The static libraries end up in a shared object.
 set_target_properties(lob_core lob_paper PROPERTIES POSITION_INDEPENDENT_CODE ON)

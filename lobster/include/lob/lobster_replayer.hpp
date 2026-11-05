@@ -113,12 +113,14 @@ struct FirstAnomaly {
   AnomalyMask mask = 0;
 };
 
+struct ReplayConfig {
+  Policy policy = Policy::Strict;
+  bool bootstrap = false;
+};
+
 class Replayer {
  public:
-  struct Config {
-    Policy policy = Policy::Strict;
-    bool bootstrap = false;
-  };
+  using Config = ReplayConfig;
 
   explicit Replayer(Config cfg = Config{});
 

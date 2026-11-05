@@ -1,0 +1,27 @@
+# pip route for the lobsim bindings: `pip install ./python` from the repository root.
+# The CMake project is the repository root (cmake.source-dir = ".."), so this works only from a
+# checkout of the whole repository; no sdist is published.
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "lobsim"
+version = "0.1.0"
+description = "Python bindings for a C++17 limit order book engine and an Avellaneda-Stoikov (2008) replication"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.21"]
+
+[tool.scikit-build]
+cmake.source-dir = ".."
+cmake.build-type = "Release"
+minimum-version = "0.10"
+# The package files are installed by python/CMakeLists.txt (if(SKBUILD) block); disable
+# auto-discovery so they are not added twice.
+wheel.packages = []
+
+[tool.scikit-build.cmake.define]
+LOB_MODULES = "core;paper;python"
+LOB_BUILD_TESTS = "OFF"
+LOB_BUILD_BENCH = "OFF"
