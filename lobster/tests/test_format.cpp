@@ -265,34 +265,34 @@ LOB_TEST(message_rows_as_public_sources_show_them) {
   // Opening and closing auction crosses: type 6 with order id -1 and -2, as described at
   // https://aef-course.ku.dk/exercises/high-frequency-econometrics.html ("type == 6 and ID == -1"
   // / "ID == -2"). The page shows no raw row: time, size, price and direction are invented.
-  LOB_CHECK(msg("34200.000000000,6,-1,1500,5857500,-1", m).ok());
+  LOB_CHECK(msg("34200.000000000,6,-1,1500,1002450,-1", m).ok());
   LOB_CHECK_EQ(m.id, std::int64_t{-1});
   LOB_CHECK_EQ(m.size, Qty{1500});
-  LOB_CHECK(msg("57600.000000000,6,-2,2400,5861000,-1", m).ok());
+  LOB_CHECK(msg("57600.000000000,6,-2,2400,1002600,-1", m).ok());
   LOB_CHECK_EQ(m.id, std::int64_t{-2});
-  // Hidden executions (type 5) with id 0 and direction -1 and +1, as rows of the AAPL 2012-06-21
-  // LOBSTER sample appear in the dataset viewer at
-  // https://huggingface.co/datasets/y7pan/lobster-data
-  // (the viewer may round the time; the other fields are as shown).
-  LOB_CHECK(msg("34200.275072,5,0,100,5857900,-1", m).ok());
-  LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond + 275072000);
+  // Hidden executions (type 5) with id 0 and direction -1 and +1: the form of the type-5 rows that
+  // the dataset viewer at https://huggingface.co/datasets/y7pan/lobster-data shows for LOBSTER's
+  // AAPL 2012-06-21 sample. Only the form (id 0, direction -1 or +1) is taken from there; time,
+  // size and price are invented, and no row of the sample is copied.
+  LOB_CHECK(msg("34200.300000,5,0,100,1002500,-1", m).ok());
+  LOB_CHECK_EQ(m.time, 34200 * kNanosPerSecond + 300000000);
   LOB_CHECK_EQ(m.direction, std::int64_t{-1});
-  LOB_CHECK(msg("34200.417747,5,0,23,5857200,1", m).ok());
+  LOB_CHECK(msg("34200.400000,5,0,23,1002400,1", m).ok());
   LOB_CHECK_EQ(m.size, Qty{23});
   LOB_CHECK_EQ(m.direction, std::int64_t{1});
   // Readers at the KU page above and at https://voigtstefan.github.io/post/lobster-1 read a seventh
   // message column named `null` and drop it: an empty seventh field (one trailing comma) parses,
   // a non-empty one is rejected.
   LOB_CHECK(msg("36023,7,0,0,-1,-1,", m).ok());
-  LOB_CHECK(msg("34200.417747,5,0,23,5857200,1,", m).ok());
-  LOB_CHECK(msg("34200.000000000,6,-1,1500,5857500,-1,", m).ok());
+  LOB_CHECK(msg("34200.400000,5,0,23,1002400,1,", m).ok());
+  LOB_CHECK(msg("34200.000000000,6,-1,1500,1002450,-1,", m).ok());
   LOB_CHECK(msg("36023,7,0,0,-1,-1,0", m).code == ParseCode::WrongFieldCount);
   // Order-book row with one trailing comma (no source shows the raw bytes of a real row).
   BookRow row;
   row.resize(1);
-  LOB_CHECK(parse_book_row("5857900,200,5857200,100,", row).ok());
+  LOB_CHECK(parse_book_row("1002500,200,1002400,100,", row).ok());
   LOB_CHECK_EQ(row.asks[0].qty, Qty{200});
-  LOB_CHECK_EQ(row.bids[0].price, Price{5857200});
+  LOB_CHECK_EQ(row.bids[0].price, Price{1002400});
 }
 
 LOB_TEST(message_random_round_trip) {

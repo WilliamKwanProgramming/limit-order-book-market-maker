@@ -77,7 +77,8 @@ hidden executions by direction as written in the file, not as a buy/sell side. R
 these pages show (halt, quoting and resume rows, both auction crosses, hidden executions with
 either direction, trailing commas) are covered by `lobster_test_format` and `lobster_test_replay`:
 they parse, leave the book unchanged, their order-book rows pass the unchanged-row check, and they
-are counted by type.
+are counted by type. Only the form is taken from the pages: the times, sizes and prices in these
+fixtures are invented and no row of any LOBSTER file is copied.
 
 ## Replay and anomaly policy
 

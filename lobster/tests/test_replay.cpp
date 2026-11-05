@@ -433,17 +433,17 @@ LOB_TEST(session_real_format_rows_leave_the_book_unchanged) {
   // (type 5, id 0) with direction -1 and +1, halt / quoting / resume rows (type 7, price -1, 0, 1,
   // direction -1) and a closing cross (id -2). Some message and order-book rows end in a comma.
   const std::string msgs =
-      "34200.1,1,101,100,5857200,1\n"
-      "34200.2,1,102,200,5857900,-1,\n"
-      "34200.25,6,-1,1500,5857500,-1,\n"
-      "34200.275072,5,0,100,5857900,-1\n"
-      "34200.417747,5,0,23,5857200,1,\n"
+      "34200.1,1,101,100,1002400,1\n"
+      "34200.2,1,102,200,1002500,-1,\n"
+      "34200.25,6,-1,1500,1002450,-1,\n"
+      "34200.3,5,0,100,1002500,-1\n"
+      "34200.4,5,0,23,1002400,1,\n"
       "36023,7,0,0,-1,-1,\n"
       "36323,7,0,0,0,-1\n"
       "36723,7,0,0,1,-1,\n"
-      "57600,6,-2,2400,5861000,-1\n";
-  std::vector<std::string> rows(9, "5857900,200,5857200,100");
-  rows[0] = "9999999999,0,5857200,100";
+      "57600,6,-2,2400,1002600,-1\n";
+  std::vector<std::string> rows(9, "1002500,200,1002400,100");
+  rows[0] = "9999999999,0,1002400,100";
   rows[3] += ",";
   rows[6] += ",";
   SessionOptions opt;  // strict policy
@@ -472,7 +472,7 @@ LOB_TEST(session_real_format_rows_leave_the_book_unchanged) {
 
   // The order-book row of the resume message changed: it differs from the row before it and from
   // the engine (message 8), and the closing-cross row after it differs from it (message 9).
-  rows[7] = "5857900,150,5857200,100";
+  rows[7] = "1002500,150,1002400,100";
   const std::string changed = join(rows);
   const SessionResult c = session(msgs, &changed, opt);
   LOB_CHECK_EQ(c.validation.unchanged_violations, std::uint64_t{2});
