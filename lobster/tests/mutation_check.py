@@ -2,10 +2,10 @@
 """Mutation check for the lobster test suite: do the tests notice deliberate bugs?
 
 Copies the sources the lobster tests need into a temporary directory, applies ONE deliberate bug
-("mutant") at a time, rebuilds lobster_replay and the three unit-test programs, and runs the unit
-tests and the integration test (tests/integration_test.py, about 25 s per mutant). A mutant is
-"caught" if at least one of the four fails. A surviving mutant means a blind spot; the script
-then exits with status 1. Pattern: core/tests/mutation_check.py.
+("mutant") at a time, rebuilds lobster_replay, lobster_cut_full_seed and the three unit-test
+programs, and runs the unit tests and the integration test (tests/integration_test.py, about 25 s
+per mutant). A mutant is "caught" if at least one of the four fails. A surviving mutant means a
+blind spot; the script then exits with status 1. Pattern: core/tests/mutation_check.py.
 
 Usage: python3 lobster/tests/mutation_check.py [--out FILE] [--timeout SECONDS]
 Standard library only; needs cmake, a C++17 compiler and (optionally) ninja.
@@ -20,7 +20,7 @@ import tempfile
 import time
 
 UNIT = ["lobster_test_format", "lobster_test_replay", "lobster_test_alloc"]
-TARGETS = UNIT + ["lobster_replay"]
+TARGETS = UNIT + ["lobster_replay", "lobster_cut_full_seed"]
 
 # (name, file, text that must occur exactly once, replacement)
 MUTANTS = [
@@ -58,6 +58,8 @@ MUTANTS = [
      "      fills_.clear();\n      s = book_.execute_resting(id, m.size, m.time, fills_);",
      "      fills_.clear();\n      fills_.shrink_to_fit();\n"
      "      s = book_.execute_resting(id, m.size, m.time, fills_);"),
+    ("L13 cut experiment: ghosts seeded from the N-level row 1, not the complete book",
+     "lobster/tools/cut_full_seed.cpp", "rep.seed_ghosts(m, full)", "rep.seed_ghosts(m, row)"),
 ]
 
 
@@ -98,6 +100,7 @@ def main():
             cmd = [sys.executable, str(work / "lobster/tests/integration_test.py"),
                    "--replay", str(build / "lobster/lobster_replay"),
                    "--synth", str(work / "lobster/tools/synth_lobster.py"),
+                   "--full-seed", str(build / "lobster/lobster_cut_full_seed"),
                    "--workdir", str(tmp / "integration")]
             try:
                 if run(cmd, timeout=args.timeout).returncode != 0:

@@ -47,6 +47,7 @@ if(LOB_BUILD_TESTS)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration_test.py
               --replay $<TARGET_FILE:lobster_replay>
               --synth ${CMAKE_CURRENT_SOURCE_DIR}/tools/synth_lobster.py
+              --full-seed $<TARGET_FILE:lobster_cut_full_seed>
               --workdir ${CMAKE_CURRENT_BINARY_DIR}/integration)
   else()
     add_executable(lobster_skip tests/skip_main.cpp)
