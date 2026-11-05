@@ -2,18 +2,20 @@
 # Regenerates every number under results/lobster/ (about 5 minutes single-threaded).
 # Usage: lobster/reproduce.sh [build-dir] [data-dir]
 #   build-dir  default build-lobster; lobster_replay must already be built (Release)
-#   data-dir   where the synthetic LOBSTER-layout files are written (default: a new temporary
-#              directory). Each file is deleted after use; nothing is written into the repository
-#              except results/lobster/.
+#   data-dir   where the synthetic LOBSTER-layout files are written (default data/tmp/lobster,
+#              which is git-ignored). Each file is deleted after use; nothing is written into the
+#              repository except results/lobster/.
+# All paths are relative to the repository root so that no machine-specific path is recorded in
+# the results.
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo"
 build="${1:-build-lobster}"
-data="${2:-$(mktemp -d)}"
-bin="$repo/$build/lobster/lobster_replay"
+data="${2:-data/tmp/lobster}"
+bin="$build/lobster/lobster_replay"
 synth="lobster/tools/synth_lobster.py"
 out="results/lobster"
-cd "$repo"
 
 [[ -x "$bin" ]] || { echo "missing $bin: build it first (see lobster/README.md)" >&2; exit 1; }
 mkdir -p "$data"
@@ -111,4 +113,5 @@ done
 rm -f "$data/bench_message_10.csv" "$data/bench_orderbook_10.csv"
 
 run python3 lobster/tools/make_tables.py
+rmdir "$data" 2>/dev/null || true  # only if empty
 echo "done: $out"
