@@ -20,10 +20,14 @@ LOB_TEST(parses_strategy_lists) {
   LOB_CHECK_EQ(s[3].label, std::string("sym:2e-3"));
   LOB_CHECK(parse_strategies("symtv:0.004", s, err));
   LOB_CHECK(s[0].kind == StrategySpec::Kind::SymTV && s[0].param == 0.004);
+  LOB_CHECK(parse_strategies("skewc:5e-3", s, err));
+  LOB_CHECK(s[0].kind == StrategySpec::Kind::SkewC && s[0].param == 0.005);
+  LOB_CHECK_EQ(s[0].label, std::string("skewc:5e-3"));
   LOB_CHECK(uses_as_inputs(StrategySpec::Kind::SymTV) && uses_as_inputs(StrategySpec::Kind::Sym) &&
-            uses_as_inputs(StrategySpec::Kind::AS) && !uses_as_inputs(StrategySpec::Kind::Naive));
+            uses_as_inputs(StrategySpec::Kind::AS) && uses_as_inputs(StrategySpec::Kind::SkewC) &&
+            !uses_as_inputs(StrategySpec::Kind::Naive));
   for (const char* bad : {"as", "as:0", "as:-1", "sym:x", "fixed:-1", "foo", "naive:1", "",
-                          "symtv", "symtv:0"}) {
+                          "symtv", "symtv:0", "skewc", "skewc:0", "skewc:-1", "skewc:x"}) {
     LOB_CHECK(!parse_strategies(bad, s, err));
   }
 }
@@ -56,6 +60,136 @@ LOB_TEST(symtv_pairs_come_after_the_existing_pairs) {
   LOB_CHECK(p[n + 1] == std::make_pair(std::size_t{3}, std::size_t{6}));
   LOB_CHECK(p[n + 2] == std::make_pair(std::size_t{5}, std::size_t{2}));
   LOB_CHECK(p[n + 3] == std::make_pair(std::size_t{6}, std::size_t{4}));
+}
+
+LOB_TEST(skewc_pairs_come_after_the_symtv_pairs) {
+  std::vector<StrategySpec> s, old;
+  std::string err;
+  // The published list order: as/sym per gamma, then symtv per gamma; skewc appended last.
+  LOB_CHECK(parse_strategies("none,naive,as:0.1,sym:0.1,as:0.2,sym:0.2,symtv:0.1,symtv:0.2", old,
+                             err));
+  LOB_CHECK(parse_strategies(
+      "none,naive,as:0.1,sym:0.1,as:0.2,sym:0.2,symtv:0.1,symtv:0.2,skewc:0.1,skewc:0.2", s, err));
+  const auto po = comparison_pairs(old);
+  const auto p = comparison_pairs(s);
+  LOB_CHECK_EQ(p.size(), po.size() + 4);
+  for (std::size_t i = 0; i < po.size(); ++i) LOB_CHECK(p[i] == po[i]);
+  const std::size_t n = po.size();
+  // as:g vs skewc:g for each g, then skewc:g vs sym:g.
+  LOB_CHECK(p[n] == std::make_pair(std::size_t{2}, std::size_t{8}));
+  LOB_CHECK(p[n + 1] == std::make_pair(std::size_t{4}, std::size_t{9}));
+  LOB_CHECK(p[n + 2] == std::make_pair(std::size_t{8}, std::size_t{3}));
+  LOB_CHECK(p[n + 3] == std::make_pair(std::size_t{9}, std::size_t{5}));
+  // A skewc arm without its partner arm forms no pair.
+  LOB_CHECK(parse_strategies("as:0.1,sym:0.2,skewc:0.3", s, err));
+  LOB_CHECK(comparison_pairs(s).empty());
+}
+
+LOB_TEST(factorial_sets_need_all_four_arms_at_one_gamma) {
+  std::vector<StrategySpec> s;
+  std::string err;
+  LOB_CHECK(parse_strategies(
+      "naive,as:0.1,sym:0.1,as:0.2,sym:0.2,symtv:0.1,symtv:0.2,skewc:0.1,skewc:0.3", s, err));
+  const auto f = factorial_sets(s);
+  LOB_CHECK_EQ(f.size(), std::size_t{1});  // gamma 0.2 has no skewc arm
+  LOB_CHECK(f[0].as == 1 && f[0].skewc == 7 && f[0].symtv == 5 && f[0].sym == 2);
+  LOB_CHECK(parse_strategies("as:0.1,sym:0.1,symtv:0.1", s, err));
+  LOB_CHECK(factorial_sets(s).empty());
+}
+
+namespace {
+
+std::vector<EpisodeResult> episodes(std::size_t n, Rng& rng, double sd) {
+  std::vector<EpisodeResult> e(n);
+  for (EpisodeResult& r : e) {
+    r.pnl = rng.normal(0.0, sd);
+    r.final_inventory = static_cast<Qty>(rng.uniform_int(std::int64_t{-6}, std::int64_t{6}));
+  }
+  return e;
+}
+
+// The interval of the named statistic; a missing name gives kept = -1 and NaN values, which fail
+// every check below.
+NamedInterval stat(const std::vector<NamedInterval>& v, const std::string& name) {
+  for (const NamedInterval& ni : v) {
+    if (ni.name == name) return ni;
+  }
+  NamedInterval missing;
+  missing.kept = -1;
+  missing.iv = {std::nan(""), std::nan(""), std::nan("")};
+  return missing;
+}
+
+}  // namespace
+
+LOB_TEST(interaction_uses_the_same_episodes_for_all_four_arms) {
+  // A&S = 3 x SkewC and SymTV = Symmetric episode by episode: the PnL SD interaction is exactly 3
+  // and the q_T SD interaction exactly 2 in every replicate, but only if the four arms are
+  // resampled with the same indices. The mean interaction is 2 x the SkewC mean, which varies.
+  Rng rng(31);
+  const auto skewc = episodes(300, rng, 10.0);
+  const auto sym = episodes(300, rng, 25.0);
+  auto as = skewc;
+  for (std::size_t i = 0; i < as.size(); ++i) {
+    as[i].pnl = 3.0 * skewc[i].pnl;
+    as[i].final_inventory = 2 * skewc[i].final_inventory;
+  }
+  Rng b(32);
+  const auto out = interaction_bootstrap(as, skewc, sym, sym, 500, b);
+  LOB_CHECK_EQ(out.size(), std::size_t{3});
+  const NamedInterval sp = stat(out, "sd_pnl_interaction");
+  LOB_CHECK_NEAR(sp.iv.estimate, 3.0, 1e-12);
+  LOB_CHECK_NEAR(sp.iv.lo, 3.0, 1e-12);
+  LOB_CHECK_NEAR(sp.iv.hi, 3.0, 1e-12);
+  LOB_CHECK_EQ(sp.kept, 500);
+  const NamedInterval si = stat(out, "sd_final_inv_interaction");
+  LOB_CHECK_NEAR(si.iv.lo, 2.0, 1e-12);
+  LOB_CHECK_NEAR(si.iv.hi, 2.0, 1e-12);
+  const NamedInterval m = stat(out, "mean_pnl_interaction");
+  double mean = 0;
+  for (const EpisodeResult& r : skewc) mean += r.pnl;
+  mean /= static_cast<double>(skewc.size());
+  LOB_CHECK_NEAR(m.iv.estimate, 2.0 * mean, 1e-9);
+  LOB_CHECK(m.iv.lo < m.iv.estimate && m.iv.estimate < m.iv.hi);
+}
+
+LOB_TEST(interaction_is_the_ratio_of_the_paired_ratios) {
+  // On unrelated arms the point estimates equal (A&S/SkewC) / (SymTV/Sym) from paired_bootstrap,
+  // and a known shift in the means is recovered with a narrow interval.
+  Rng rng(41);
+  const auto as = episodes(400, rng, 12.0), skewc = episodes(400, rng, 15.0),
+             tv = episodes(400, rng, 30.0);
+  auto sym = tv;
+  for (std::size_t i = 0; i < sym.size(); ++i) sym[i].pnl = tv[i].pnl - 4.0 + rng.normal(0.0, 0.1);
+  auto as2 = skewc;
+  for (std::size_t i = 0; i < as2.size(); ++i) as2[i].pnl = skewc[i].pnl + 1.0;
+  Rng b(42), c(43), d(44);
+  const auto out = interaction_bootstrap(as, skewc, tv, sym, 200, b);
+  const auto r1 = paired_bootstrap(as, skewc, 600.0, 10, c);
+  const auto r2 = paired_bootstrap(tv, sym, 600.0, 10, d);
+  LOB_CHECK_NEAR(stat(out, "sd_pnl_interaction").iv.estimate,
+                 stat(r1, "sd_pnl_ratio").iv.estimate / stat(r2, "sd_pnl_ratio").iv.estimate,
+                 1e-12);
+  LOB_CHECK_NEAR(stat(out, "sd_final_inv_interaction").iv.estimate,
+                 stat(r1, "sd_final_inv_ratio").iv.estimate /
+                     stat(r2, "sd_final_inv_ratio").iv.estimate,
+                 1e-12);
+  LOB_CHECK_NEAR(stat(out, "mean_pnl_interaction").iv.estimate,
+                 stat(r1, "mean_pnl_diff").iv.estimate - stat(r2, "mean_pnl_diff").iv.estimate,
+                 1e-9);
+  // (A&S2 - SkewC) - (SymTV - Sym) = 1 - 4 = -3 per episode, up to the 0.1 noise.
+  Rng e(45);
+  const NamedInterval m = stat(interaction_bootstrap(as2, skewc, tv, sym, 500, e),
+                                "mean_pnl_interaction");
+  LOB_CHECK(m.iv.lo < -3.0 && m.iv.hi > -3.0 && m.iv.hi - m.iv.lo < 0.05);
+  // A constant arm has SD 0: the ratio statistics are dropped, the mean difference is kept.
+  auto flat = sym;
+  for (EpisodeResult& r : flat) r.pnl = 1.0;
+  Rng f(46);
+  const auto z = interaction_bootstrap(as, skewc, tv, flat, 50, f);
+  LOB_CHECK_EQ(stat(z, "sd_pnl_interaction").kept, 0);
+  LOB_CHECK(std::isnan(stat(z, "sd_pnl_interaction").iv.lo));
+  LOB_CHECK_EQ(stat(z, "mean_pnl_interaction").kept, 50);
 }
 
 LOB_TEST(summary_pools_ratios) {

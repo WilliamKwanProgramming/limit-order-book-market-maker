@@ -1,7 +1,8 @@
 // stress_test: the strategies of backtest_run across a grid of informed-flow intensities
 // (news rate nu x branching ratio n_br, plus nu = 0 run once). Every cell uses the same episode
 // seeds, so background flow is common across cells as well as across strategies.
-// Writes run.txt, stress_summary.csv, stress_diagnostics.csv and stress_comparison.csv.
+// Writes run.txt, stress_summary.csv, stress_diagnostics.csv, stress_comparison.csv and, when the
+// list has as, skewc, symtv and sym at one gamma, stress_factorial.csv.
 #include <chrono>
 #include <cstdio>
 
@@ -25,7 +26,7 @@ int main(int argc, char** argv) {
   }
   for (const StrategySpec& s : specs) {
     if (uses_as_inputs(s.kind) && !o.calib_given) {
-      std::fprintf(stderr, "as/sym/symtv strategies need --as-sigma and --as-k\n");
+      std::fprintf(stderr, "as/sym/symtv/skewc strategies need --as-sigma and --as-k\n");
       return 2;
     }
   }
@@ -56,11 +57,17 @@ int main(int argc, char** argv) {
   std::FILE* fs = cli::open_out(o.out_dir, "stress_summary.csv");
   std::FILE* fd = cli::open_out(o.out_dir, "stress_diagnostics.csv");
   std::FILE* fc = o.bootstrap > 0 ? cli::open_out(o.out_dir, "stress_comparison.csv") : nullptr;
-  if (!fs || !fd || (o.bootstrap > 0 && !fc)) return 1;
+  const bool factorial = o.bootstrap > 0 && cli::has_factorial(specs);
+  std::FILE* ff = factorial ? cli::open_out(o.out_dir, "stress_factorial.csv") : nullptr;
+  if (!fs || !fd || (o.bootstrap > 0 && !fc) || (factorial && !ff)) return 1;
   write_summary_header(fs, "nu,n_br,");
   write_diagnostics_header(fd, "nu,n_br,");
   if (fc) {
     std::fprintf(fc, "nu,n_br,a,b,replicates,statistic,estimate,ci_lo,ci_hi,replicates_kept\n");
+  }
+  if (ff) {
+    std::fprintf(ff, "nu,n_br,as,skewc,symtv,sym,replicates,statistic,estimate,ci_lo,ci_hi,"
+                     "replicates_kept\n");
   }
 
   const std::string load_start = cli::loadavg();
@@ -81,12 +88,14 @@ int main(int argc, char** argv) {
                   sm.mean_fills, sm.markout[1]);
     }
     if (fc) cli::write_comparisons(fc, prefix, specs, res, p.horizon, o.bootstrap, o.seed, c);
+    if (ff) cli::write_factorial(ff, prefix, specs, res, o.bootstrap, o.seed, c);
     std::fflush(stdout);
   }
   const double wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
   std::fclose(fs);
   std::fclose(fd);
   if (fc) std::fclose(fc);
+  if (ff) std::fclose(ff);
   if (std::FILE* f = cli::open_out(o.out_dir, "run.txt")) {
     cli::write_run_txt(f, argc, argv, o);
     std::fprintf(f, "nu_grid:");

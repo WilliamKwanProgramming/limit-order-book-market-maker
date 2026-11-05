@@ -81,6 +81,22 @@ QuoteTarget SymmetricTimeVarying::quote(const StrategyView& v) {
   return apply_quote_rules(r.bid, r.ask, true, true, v);
 }
 
+SkewConstSpread::SkewConstSpread(const AsParams& a)
+    : a_(a),
+      m_(to_paper_params(a)),
+      half_spread_(0.5 * paper::average_optimal_spread(a.gamma, m_)) {}
+
+paper::Quotes SkewConstSpread::raw(double t, double s, Qty q) const {
+  const double r = paper::reservation_price(s, static_cast<double>(q), t, a_.gamma, m_);
+  return {r - half_spread_, r + half_spread_};
+}
+
+QuoteTarget SkewConstSpread::quote(const StrategyView& v) {
+  if (!v.mid_defined) return {};
+  const paper::Quotes r = raw(std::min(v.t, a_.horizon), v.mid, v.inventory);
+  return apply_quote_rules(r.bid, r.ask, true, true, v);
+}
+
 QuoteTarget NaiveTouch::quote(const StrategyView& v) {
   const double b = v.others_bid ? static_cast<double>(*v.others_bid) : 0.0;
   const double a = v.others_ask ? static_cast<double>(*v.others_ask) : 0.0;

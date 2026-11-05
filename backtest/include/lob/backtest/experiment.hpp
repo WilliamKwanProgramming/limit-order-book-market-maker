@@ -15,11 +15,12 @@
 
 namespace lob::backtest {
 
-// "none", "naive", "as:<gamma>", "sym:<gamma>", "symtv:<gamma>", "fixed:<offset ticks>".
+// "none", "naive", "as:<gamma>", "sym:<gamma>", "symtv:<gamma>", "skewc:<gamma>",
+// "fixed:<offset ticks>".
 struct StrategySpec {
-  enum class Kind { None, AS, Sym, Naive, Fixed, SymTV };
+  enum class Kind { None, AS, Sym, Naive, Fixed, SymTV, SkewC };
   Kind kind = Kind::None;
-  double param = 0.0;  // gamma for AS, Sym and SymTV, offset for Fixed
+  double param = 0.0;  // gamma for AS, Sym, SymTV and SkewC, offset for Fixed
   std::string label;   // the spec string as given
 };
 
@@ -32,7 +33,7 @@ struct AsCalibration {
   double k = 0.0;
 };
 
-// True for the strategies built from the A&S inputs (as, sym, symtv).
+// True for the strategies built from the A&S inputs (as, sym, symtv, skewc).
 bool uses_as_inputs(StrategySpec::Kind k) noexcept;
 
 std::unique_ptr<Strategy> make_strategy(const StrategySpec& s, const SimParams& p,
@@ -124,10 +125,32 @@ void write_diagnostics_header(std::FILE* f, const char* prefix);
 void write_diagnostics_row(std::FILE* f, const std::string& prefix, const StrategySpec& spec,
                            const MarketDiagnostics& d);
 // Pairs compared, when both members are present: (as:g, sym:g), (as:g, naive) and (sym:g, naive)
-// for every g, then (as:g, symtv:g) and (symtv:g, sym:g). The symtv pairs come last so that adding
-// symtv arms leaves the index (and so the bootstrap stream) of every other pair unchanged.
+// for every g, then (as:g, symtv:g) and (symtv:g, sym:g), then (as:g, skewc:g) and
+// (skewc:g, sym:g). Pairs with a newer arm come after the older ones, so that adding symtv or
+// skewc arms leaves the index (and so the bootstrap stream) of every older pair unchanged.
 // Returned as indices into `specs`.
 std::vector<std::pair<std::size_t, std::size_t>> comparison_pairs(
     const std::vector<StrategySpec>& specs);
+
+// The 2 x 2 design of the skew/spread decomposition at one gamma: A&S (skew and time-varying
+// spread), SkewC (skew only), SymTV (time-varying spread only), Symmetric (neither).
+struct FactorialArms {
+  std::size_t as = 0, skewc = 0, symtv = 0, sym = 0;  // indices into the strategy list
+};
+// One entry per as:g whose skewc:g, symtv:g and sym:g are all in `specs`, in list order.
+std::vector<FactorialArms> factorial_sets(const std::vector<StrategySpec>& specs);
+
+// Interaction of the skew and the time-varying spread, with a paired percentile bootstrap that
+// draws one set of episode indices per replicate and applies it to all four arms:
+//   sd_pnl_interaction       = (SD_AS / SD_SkewC) / (SD_SymTV / SD_Sym) of PnL,
+//   sd_final_inv_interaction = the same for terminal inventory q_T,
+//   mean_pnl_interaction     = (mean_AS - mean_SkewC) - (mean_SymTV - mean_Sym), USD.
+// The ratios are 1 (the difference 0) when the spread term has the same effect with and without
+// the skew. A replicate with a zero SD in a ratio is dropped and counted in `kept`.
+std::vector<NamedInterval> interaction_bootstrap(const std::vector<EpisodeResult>& as,
+                                                 const std::vector<EpisodeResult>& skewc,
+                                                 const std::vector<EpisodeResult>& symtv,
+                                                 const std::vector<EpisodeResult>& sym,
+                                                 int replicates, Rng& rng, double level = 0.95);
 
 }  // namespace lob::backtest
