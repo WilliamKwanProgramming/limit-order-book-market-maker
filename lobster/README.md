@@ -79,8 +79,8 @@ either direction, trailing commas) are covered by `lobster_test_format` and `lob
 they parse, leave the book unchanged, their order-book rows pass the unchanged-row check, and they
 are counted by type. Only the form is taken from the pages: the times, sizes and prices in these
 fixtures are invented and no row of any LOBSTER file is copied. (Earlier versions of these
-fixtures did contain a few lines of the public AAPL sample that the cited pages show: commit db08821
-added them, aad279d replaced most and a later commit (2026-11-05) the last one. They are no longer
+fixtures did contain a few lines of the public AAPL sample that the cited pages show: commit 6a16e0a
+added them, 659da6b replaced most and a later commit (2026-11-05) the last one. They are no longer
 in the files but stay visible in the git history.)
 
 ## Replay and anomaly policy

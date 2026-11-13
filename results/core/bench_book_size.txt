@@ -2,7 +2,7 @@
 # command: build-core-bench/core/bench_replay  --target-orders K --depth D --prefill 1
 #          for (K, D) in 300/20, 10000/100, 100000/1000, 1000000/10000
 # cmake:   -DCMAKE_BUILD_TYPE=Release -DLOB_NATIVE=OFF
-# git:     71b11a68a7c0bc79378114d17d8257c6d3a272dc (clean core/)
+# git:     947fbbf1dba849aa3d7533ca99a2ca04a0d62273 (clean core/)
 # date:    2026-11-05T11:43:29Z
 # machine: shared 2-core cloud VM (another job may run concurrently); numbers are
 #          indicative only and will differ on other hardware.

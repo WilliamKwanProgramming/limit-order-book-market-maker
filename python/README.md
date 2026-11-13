@@ -183,7 +183,7 @@ pybind11 and compiler versions, load average):
 PYTHONPATH=build-python/python python3 python/bench/bench_bindings.py --out results/python/bench.txt
 ```
 
-From `results/python/bench.txt` (git 471cdd1, GCC 13.3 Release, CPython 3.13.18, numpy 2.5.3,
+From `results/python/bench.txt` (git 5f7ab87, GCC 13.3 Release, CPython 3.13.18, numpy 2.5.3,
 7 runs each, load average 1.08 at start). **Measured on a shared 2-core cloud VM** (Intel Xeon
 @ 2.80GHz) while other jobs could run; treat as indicative.
 
